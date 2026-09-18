@@ -20,12 +20,14 @@ return [
         ->default('itqan-nested-replies.show_reply_tag', '1')
         ->default('itqan-nested-replies.show_replied_indicator', '1')
         ->default('itqan-nested-replies.like_color', '#ff4500')
+        ->default('itqan-nested-replies.start_at_first_post', '1')
         ->serializeToForum('redditRepliesEnabled', 'itqan-nested-replies.enabled', 'boolval')
         ->serializeToForum('redditRepliesMaxDepth', 'itqan-nested-replies.max_depth', 'intval')
         ->serializeToForum('redditRepliesShowVotes', 'itqan-nested-replies.show_votes', 'boolval')
         ->serializeToForum('redditRepliesShowReplyTag', 'itqan-nested-replies.show_reply_tag', 'boolval')
         ->serializeToForum('redditRepliesShowRepliedIndicator', 'itqan-nested-replies.show_replied_indicator', 'boolval')
-        ->serializeToForum('redditRepliesLikeColor', 'itqan-nested-replies.like_color'),
+        ->serializeToForum('redditRepliesLikeColor', 'itqan-nested-replies.like_color')
+        ->serializeToForum('redditRepliesStartAtFirstPost', 'itqan-nested-replies.start_at_first_post', 'boolval'),
 
     (new Extend\Routes('api'))
         ->post('/itqan-nested-replies/posts/{id}/vote', 'itqan-nested-replies.vote', VotePostController::class),

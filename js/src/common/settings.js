@@ -29,5 +29,6 @@ export function readSettings(app) {
     showReplyTag: Boolean(read('redditRepliesShowReplyTag', true)),
     showRepliedIndicator: Boolean(read('redditRepliesShowRepliedIndicator', true)),
     likeColor: String(read('redditRepliesLikeColor', '#ff4500')),
+    startAtFirstPost: Boolean(read('redditRepliesStartAtFirstPost', true)),
   };
 }

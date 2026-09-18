@@ -69,8 +69,9 @@
   > .RedditPost-container {
     margin-left: ~"calc(var(--depth) * var(--indent))";
     // No avatar gutter: the avatar is inlined in the header below, so the body
-    // can use the full card width. The 8px keeps text clear of the guide line.
-    padding: 4px 0 4px 8px;
+    // can use the full card width. The 8px keeps text clear of the guide line,
+    // and the bottom padding separates the action bar from the next reply.
+    padding: 4px 0 14px 8px;
     border-radius: 4px;
     background: transparent;
     transition: background 0.15s ease;

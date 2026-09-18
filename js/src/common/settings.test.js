@@ -15,6 +15,7 @@ describe('readSettings', () => {
         redditRepliesShowReplyTag: false,
         redditRepliesShowRepliedIndicator: false,
         redditRepliesLikeColor: '#00ff00',
+        redditRepliesStartAtFirstPost: false,
       })
     );
     expect(settings).toEqual({
@@ -24,6 +25,7 @@ describe('readSettings', () => {
       showReplyTag: false,
       showRepliedIndicator: false,
       likeColor: '#00ff00',
+      startAtFirstPost: false,
     });
   });
 
@@ -35,6 +37,7 @@ describe('readSettings', () => {
       showReplyTag: true,
       showRepliedIndicator: true,
       likeColor: '#ff4500',
+      startAtFirstPost: true,
     });
   });
 
@@ -46,6 +49,7 @@ describe('readSettings', () => {
       showReplyTag: true,
       showRepliedIndicator: true,
       likeColor: '#ff4500',
+      startAtFirstPost: true,
     });
   });
 
@@ -68,6 +72,7 @@ describe('readSettings', () => {
       showReplyTag: false,
       showRepliedIndicator: false,
       likeColor: '#ff4500',
+      startAtFirstPost: true,
     });
   });
 });

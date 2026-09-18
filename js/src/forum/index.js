@@ -5,6 +5,7 @@ import Post from 'flarum/forum/components/Post';
 import CommentPost from 'flarum/forum/components/CommentPost';
 import PostStream from 'flarum/forum/components/PostStream';
 import ReplyPlaceholder from 'flarum/forum/components/ReplyPlaceholder';
+import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
 import { readSettings } from '../common/settings';
 import { createVoteAdapter } from '../common/voteAdapter';
 import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId } from './utils/threadDepths';
@@ -30,6 +31,17 @@ app.initializers.add('itqan-nested-replies', () => {
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('RedditHideMentionedBy', !settings.showRepliedIndicator);
     document.documentElement.style.setProperty('--reddit-like-color', settings.likeColor || '#ff4500');
+  }
+
+  // Flarum's discussion-list links resume at the first unread post. Optionally
+  // open discussions at the top so readers start with the original post.
+  if (settings.startAtFirstPost) {
+    override(DiscussionListItem.prototype, 'getJumpTo', function (original) {
+      // Keep search-result jumps so the matched post is still highlighted.
+      if (this.attrs.params && this.attrs.params.q) return original();
+
+      return 1;
+    });
   }
 
   function isLikedByMe(post) {

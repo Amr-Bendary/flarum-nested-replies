@@ -32,5 +32,10 @@ app.initializers.add('itqan-nested-replies', () => {
       setting: 'itqan-nested-replies.like_color',
       type: 'color',
       label: app.translator.trans('itqan-nested-replies.admin.settings.like_color_label'),
+    })
+    .registerSetting({
+      setting: 'itqan-nested-replies.start_at_first_post',
+      type: 'boolean',
+      label: app.translator.trans('itqan-nested-replies.admin.settings.start_at_first_post_label'),
     });
 });
