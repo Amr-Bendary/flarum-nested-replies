@@ -6,9 +6,16 @@ itqan-nested-replies:
       show_votes_label: Show vote rail
       show_reply_tag_label: Show "Reply to" tag
       show_replied_indicator_label: Show "replied to this" indicator
+      like_color_label: Like color (active)
   forum:
     collapse: Collapse replies
     expand: Expand replies
     upvote: Upvote
     downvote: Downvote
     reply_to: "Reply to {username}"
+    sort_by: "Sort by:"
+    sort_oldest: Oldest
+    sort_newest: Newest
+    sort_top: Top voted
+    sort_replies: Most replies
+    sort_loading: Loading...

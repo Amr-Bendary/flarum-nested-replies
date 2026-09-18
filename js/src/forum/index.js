@@ -4,9 +4,10 @@ import icon from 'flarum/common/helpers/icon';
 import Post from 'flarum/forum/components/Post';
 import CommentPost from 'flarum/forum/components/CommentPost';
 import PostStream from 'flarum/forum/components/PostStream';
+import ReplyPlaceholder from 'flarum/forum/components/ReplyPlaceholder';
 import { readSettings } from '../common/settings';
 import { createVoteAdapter } from '../common/voteAdapter';
-import { getDepth, isHidden, isOriginalPost, getReplyTarget } from './utils/threadDepths';
+import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId } from './utils/threadDepths';
 import VoteRail from './components/VoteRail';
 import CollapseToggle from './components/CollapseToggle';
 
@@ -19,10 +20,32 @@ app.initializers.add('itqan-nested-replies', () => {
   const mounted = new Set();
   const lookup = (id) => app.store.getById('posts', String(id));
 
-  // Core mentions renders a "You replied to this." summary; hide it globally
-  // when the admin turns the indicator off.
+  // Reply-card sorting. `oldest` uses Flarum's native stream; the other modes
+  // fetch every page first so pagination can't leave posts out of the order.
+  let sortMode = 'oldest';
+  let allPosts = null;
+  let loadingAll = false;
+  let currentDiscussion = null;
+
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('RedditHideMentionedBy', !settings.showRepliedIndicator);
+    document.documentElement.style.setProperty('--reddit-like-color', settings.likeColor || '#ff4500');
+  }
+
+  function isLikedByMe(post) {
+    if (!app.session.user || typeof post.likes !== 'function') return false;
+
+    const likes = post.likes();
+    if (!Array.isArray(likes)) return false;
+
+    return likes.some(
+      (user) => user === app.session.user || (user && typeof user.id === 'function' && String(user.id()) === String(app.session.user.id()))
+    );
+  }
+
+  function syncLikedClass(element, post) {
+    const item = element.querySelector('.item-like');
+    if (item) item.classList.toggle('is-liked', isLikedByMe(post));
   }
 
   function decorate(component) {
@@ -60,6 +83,8 @@ app.initializers.add('itqan-nested-replies', () => {
     if (hidden) element.dataset.hidden = 'true';
     else delete element.dataset.hidden;
 
+    syncLikedClass(element, post);
+
     // The reply target is shown as a tag in the header, so hide the inline
     // mention Flarum renders at the start of the body.
     if (settings.showReplyTag) {
@@ -71,11 +96,205 @@ app.initializers.add('itqan-nested-replies', () => {
     }
   }
 
+  // Pull every page of the discussion from the API so sorting sees all posts.
+  async function fetchAllPosts() {
+    if (!currentDiscussion) return [];
+
+    const filter = { discussion: currentDiscussion.id() };
+    const limit = 50;
+    const collected = [];
+    let offset = 0;
+    let effective = limit;
+
+    for (let guard = 0; guard < 500; guard++) {
+      const page = await app.store.find('posts', { filter, page: { offset, limit }, sort: 'number' });
+
+      if (!page || !page.length) break;
+      if (offset === 0) effective = page.length;
+
+      collected.push(...page);
+
+      if (page.length < effective) break;
+      offset += page.length;
+    }
+
+    return collected;
+  }
+
+  // Order the replies as a tree: sort each sibling group by the chosen mode and
+  // walk depth-first so children always follow their parent.
+  function buildReplyOrder(posts, mode) {
+    const byId = new Map();
+    posts.forEach((post) => byId.set(String(post.id()), post));
+
+    const op = posts.find((post) => isOriginalPost(post)) || null;
+    const opId = op ? String(op.id()) : null;
+
+    const children = new Map();
+    const roots = [];
+
+    posts.forEach((post) => {
+      if (op && post === op) return;
+
+      const parentId = getParentId(post);
+
+      if (parentId && parentId !== opId && byId.has(parentId)) {
+        const list = children.get(parentId) || [];
+        list.push(post);
+        children.set(parentId, list);
+      } else {
+        roots.push(post);
+      }
+    });
+
+    const counts = new Map();
+    const countDescendants = (post, seen) => {
+      const id = String(post.id());
+      if (seen.has(id)) return 0;
+      seen.add(id);
+
+      const kids = children.get(id) || [];
+      let total = 0;
+      kids.forEach((kid) => {
+        total += 1 + countDescendants(kid, seen);
+      });
+
+      counts.set(id, total);
+      return total;
+    };
+    posts.forEach((post) => {
+      if (!counts.has(String(post.id()))) countDescendants(post, new Set());
+    });
+
+    const time = (post) => Number(post.createdAt ? post.createdAt() : 0) || 0;
+    const score = (post) => Number(post.attribute ? post.attribute('votes') : 0) || 0;
+    const replyCount = (post) => counts.get(String(post.id())) || 0;
+
+    const comparator = (a, b) => {
+      if (mode === 'newest') return time(b) - time(a);
+      if (mode === 'top') return score(b) - score(a) || time(a) - time(b);
+      if (mode === 'replies') return replyCount(b) - replyCount(a) || time(a) - time(b);
+      return time(a) - time(b);
+    };
+
+    const ordered = [];
+    const walk = (list) => {
+      list.sort(comparator);
+      list.forEach((post) => {
+        ordered.push(post);
+        const kids = children.get(String(post.id()));
+        if (kids) walk(kids);
+      });
+    };
+    walk(roots);
+
+    return { op, ordered };
+  }
+
+  function makePostItem(post, index) {
+    const PostComponent = app.postComponents[post.contentType()];
+    if (!PostComponent) return null;
+
+    const createdAt = post.createdAt ? post.createdAt() : null;
+
+    return m(
+      'div.PostStream-item',
+      {
+        key: 'post' + post.id(),
+        'data-index': index,
+        'data-number': post.number(),
+        'data-id': post.id(),
+        'data-type': post.contentType(),
+        'data-time': createdAt && createdAt.toISOString ? createdAt.toISOString() : undefined,
+      },
+      m(PostComponent, { post })
+    );
+  }
+
+  function replySortVNode() {
+    const trans = (key) => app.translator.trans(`itqan-nested-replies.forum.${key}`);
+    const options = [
+      ['oldest', trans('sort_oldest')],
+      ['newest', trans('sort_newest')],
+      ['top', trans('sort_top')],
+      ['replies', trans('sort_replies')],
+    ];
+
+    return m('div.RedditReplySort', { key: 'redditReplySort' }, [
+      m('span.RedditReplySort-label', trans('sort_by')),
+      m(
+        'select.RedditReplySort-select',
+        {
+          value: sortMode,
+          disabled: loadingAll,
+          onchange: (e) => setSortMode(e.target.value),
+        },
+        options.map(([value, label]) => m('option', { value, selected: sortMode === value }, label))
+      ),
+      loadingAll ? m('span.RedditReplySort-loading', trans('sort_loading')) : null,
+    ]);
+  }
+
+  function setSortMode(mode) {
+    sortMode = mode;
+
+    if (mode !== 'oldest' && !allPosts) {
+      loadingAll = true;
+      m.redraw();
+
+      fetchAllPosts()
+        .then((posts) => {
+          allPosts = posts;
+        })
+        .catch(() => {
+          allPosts = null;
+        })
+        .then(() => {
+          loadingAll = false;
+          m.redraw();
+        });
+    } else {
+      m.redraw();
+    }
+  }
+
   // Flarum's post stream is a flat list. Reddit's layout wants the original
   // post in its own card and every reply inside a second card, so regroup the
   // rendered vnodes without touching core.
   override(PostStream.prototype, 'view', function (original) {
+    currentDiscussion = this.discussion;
     const vnode = original();
+
+    if (sortMode !== 'oldest' && allPosts && allPosts.length) {
+      // Sorted mode renders the whole discussion from our own ordering, so stop
+      // the native stream from paginating underneath it.
+      if (this.stream) this.stream.paused = true;
+
+      const { op, ordered } = buildReplyOrder(allPosts, sortMode);
+
+      const chrono = [...allPosts].sort((a, b) => Number(a.number()) - Number(b.number()));
+      const indexOf = new Map(chrono.map((post, i) => [String(post.id()), i]));
+
+      const opItem = op ? makePostItem(op, indexOf.get(String(op.id())) || 0) : null;
+      const replyItems = ordered.map((post) => makePostItem(post, indexOf.get(String(post.id())) || 0)).filter(Boolean);
+
+      const grouped = [];
+      if (opItem) grouped.push(m('div.RedditThreadCard', { key: 'redditThreadCard' }, opItem));
+
+      grouped.push(m('div.RedditReplyCard', { key: 'redditReplyCard' }, [replySortVNode(), ...replyItems]));
+
+      // The native stream isn't at its end when only the first page is loaded,
+      // but the sorted view shows the whole discussion, so allow replying.
+      const canReply = currentDiscussion && (!app.session.user || currentDiscussion.canReply());
+      if (canReply) {
+        grouped.push(m('div.PostStream-item', { key: 'reply' }, m(ReplyPlaceholder, { discussion: currentDiscussion })));
+      }
+
+      return m('div.PostStream', vnode.attrs, grouped);
+    }
+
+    if (this.stream) this.stream.paused = false;
+
     const children = vnode && Array.isArray(vnode.children) ? vnode.children : null;
     if (!children || !children.length) return vnode;
 
@@ -95,7 +314,7 @@ app.initializers.add('itqan-nested-replies', () => {
     const grouped = [...before, m('div.RedditThreadCard', { key: 'redditThreadCard' }, op)];
 
     if (replies.length) {
-      grouped.push(m('div.RedditReplyCard', { key: 'redditReplyCard' }, replies));
+      grouped.push(m('div.RedditReplyCard', { key: 'redditReplyCard' }, [replySortVNode(), ...replies]));
     }
 
     grouped.push(...tail);
@@ -127,6 +346,17 @@ app.initializers.add('itqan-nested-replies', () => {
   extend(Post.prototype, 'oncreate', function () {
     mounted.add(this);
     decorate(this);
+
+    // Keep the liked colour in sync even when the post doesn't rebuild.
+    if (this.element) {
+      this.element.addEventListener('click', (e) => {
+        if (e.target && e.target.closest && e.target.closest('.item-like')) {
+          requestAnimationFrame(() => {
+            if (this.element) syncLikedClass(this.element, this.attrs.post);
+          });
+        }
+      });
+    }
   });
 
   extend(Post.prototype, 'onupdate', function () {

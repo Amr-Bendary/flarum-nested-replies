@@ -28,5 +28,6 @@ export function readSettings(app) {
     showVotes: Boolean(read('redditRepliesShowVotes', true)),
     showReplyTag: Boolean(read('redditRepliesShowReplyTag', true)),
     showRepliedIndicator: Boolean(read('redditRepliesShowRepliedIndicator', true)),
+    likeColor: String(read('redditRepliesLikeColor', '#ff4500')),
   };
 }

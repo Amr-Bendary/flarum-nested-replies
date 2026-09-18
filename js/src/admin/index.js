@@ -27,5 +27,10 @@ app.initializers.add('itqan-nested-replies', () => {
       setting: 'itqan-nested-replies.show_replied_indicator',
       type: 'boolean',
       label: app.translator.trans('itqan-nested-replies.admin.settings.show_replied_indicator_label'),
+    })
+    .registerSetting({
+      setting: 'itqan-nested-replies.like_color',
+      type: 'color',
+      label: app.translator.trans('itqan-nested-replies.admin.settings.like_color_label'),
     });
 });

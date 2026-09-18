@@ -14,17 +14,39 @@ describe('readSettings', () => {
         redditRepliesShowVotes: false,
         redditRepliesShowReplyTag: false,
         redditRepliesShowRepliedIndicator: false,
+        redditRepliesLikeColor: '#00ff00',
       })
     );
-    expect(settings).toEqual({ enabled: false, maxDepth: 3, showVotes: false, showReplyTag: false, showRepliedIndicator: false });
+    expect(settings).toEqual({
+      enabled: false,
+      maxDepth: 3,
+      showVotes: false,
+      showReplyTag: false,
+      showRepliedIndicator: false,
+      likeColor: '#00ff00',
+    });
   });
 
   it('falls back to defaults when attributes are missing', () => {
-    expect(readSettings(fakeApp({}))).toEqual({ enabled: true, maxDepth: 5, showVotes: true, showReplyTag: true, showRepliedIndicator: true });
+    expect(readSettings(fakeApp({}))).toEqual({
+      enabled: true,
+      maxDepth: 5,
+      showVotes: true,
+      showReplyTag: true,
+      showRepliedIndicator: true,
+      likeColor: '#ff4500',
+    });
   });
 
   it('falls back to defaults when app is absent', () => {
-    expect(readSettings(null)).toEqual({ enabled: true, maxDepth: 5, showVotes: true, showReplyTag: true, showRepliedIndicator: true });
+    expect(readSettings(null)).toEqual({
+      enabled: true,
+      maxDepth: 5,
+      showVotes: true,
+      showReplyTag: true,
+      showRepliedIndicator: true,
+      likeColor: '#ff4500',
+    });
   });
 
   it('reads the serialized attributes from the initial payload before boot', () => {
@@ -39,6 +61,13 @@ describe('readSettings', () => {
         ],
       },
     };
-    expect(readSettings(app)).toEqual({ enabled: true, maxDepth: 2, showVotes: true, showReplyTag: false, showRepliedIndicator: false });
+    expect(readSettings(app)).toEqual({
+      enabled: true,
+      maxDepth: 2,
+      showVotes: true,
+      showReplyTag: false,
+      showRepliedIndicator: false,
+      likeColor: '#ff4500',
+    });
   });
 });
