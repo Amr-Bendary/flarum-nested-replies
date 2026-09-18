@@ -2,7 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVoteAdapter } from './voteAdapter';
 
 function fakeApp(extensions) {
-  return { extensions };
+  const enabled = {};
+  for (const id of Object.keys(extensions)) enabled[id] = true;
+  return {
+    extensionManager: {
+      extensions,
+      isEnabled: (id) => Boolean(enabled[id]),
+    },
+  };
 }
 
 function fakePost(attrs = {}) {

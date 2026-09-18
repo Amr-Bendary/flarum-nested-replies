@@ -1,8 +1,12 @@
 const GAMIFICATION_IDS = ['fof-gamification', 'fof/gamification'];
 
 export function createVoteAdapter(app) {
-  const extensions = (app && app.extensions) || {};
-  const available = GAMIFICATION_IDS.some((id) => Boolean(extensions[id]));
+  const manager = (app && app.extensionManager) || {};
+  const isEnabled = typeof manager.isEnabled === 'function' ? manager.isEnabled : () => false;
+  const available = GAMIFICATION_IDS.some((id) => {
+    if (isEnabled(id)) return true;
+    return Boolean(manager.extensions && manager.extensions[id]);
+  });
 
   return {
     isAvailable: () => available,
