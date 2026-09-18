@@ -1,1 +1,85 @@
-// Styling is implemented in Task 7.
+// Reddit-style nested reply thread theme.
+
+.RedditPost {
+  --depth: 0;
+
+  > .Post-container {
+    margin-left: calc(var(--depth) * 24px);
+    padding: 4px 8px;
+    border-left: 2px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+
+  &:hover > .Post-container {
+    background: rgba(0, 0, 0, 0.025);
+  }
+
+  &[data-depth="1"] > .Post-container { border-left-color: #7193ff; }
+  &[data-depth="2"] > .Post-container { border-left-color: #ff8717; }
+  &[data-depth="3"] > .Post-container { border-left-color: #46d160; }
+  &[data-depth="4"] > .Post-container { border-left-color: #ff4500; }
+
+  &[data-hidden="true"] {
+    display: none;
+  }
+
+  &[data-collapsed="true"] > .Post-container {
+    .Post-body,
+    .Post-content,
+    .Post-footer {
+      display: none;
+    }
+  }
+}
+
+.RedditVoteRail {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-right: 8px;
+  vertical-align: top;
+  color: var(--muted-color);
+
+  &.is-disabled {
+    opacity: 0.5;
+  }
+}
+
+.RedditVoteButton {
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &.is-active {
+    color: #ff4500;
+  }
+}
+
+.RedditVoteScore {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.RedditCollapseToggle {
+  padding: 0 6px;
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+@media @phone {
+  .RedditPost > .Post-container {
+    margin-left: calc(var(--depth) * 12px);
+  }
+}
