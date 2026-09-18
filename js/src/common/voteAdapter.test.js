@@ -1,65 +1,67 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createVoteAdapter } from './voteAdapter';
 
-function fakeApp(extensions) {
-  const enabled = {};
-  for (const id of Object.keys(extensions)) enabled[id] = true;
+function fakeApp({ user = { id: 1 }, payload = { data: { type: 'posts', id: '4' } } } = {}) {
   return {
-    extensionManager: {
-      extensions,
-      isEnabled: (id) => Boolean(enabled[id]),
+    forum: {
+      attribute: (name) => (name === 'apiUrl' ? 'http://localhost/api' : null),
     },
+    session: { user },
+    store: { pushPayload: vi.fn() },
+    request: vi.fn(() => Promise.resolve(payload)),
   };
 }
 
-function fakePost(attrs = {}) {
+function fakePost(attributes = {}) {
   return {
-    attribute: (name) => attrs[name],
-    save: vi.fn((data) => Promise.resolve(data)),
+    id: () => '4',
+    attribute: (name) => attributes[name],
   };
 }
 
 describe('createVoteAdapter', () => {
-  it('reports unavailable when fof/gamification is absent', () => {
-    expect(createVoteAdapter(fakeApp({})).isAvailable()).toBe(false);
+  it('is available to signed-in users only', () => {
+    expect(createVoteAdapter(fakeApp()).isAvailable()).toBe(true);
+    expect(createVoteAdapter(fakeApp({ user: null })).isAvailable()).toBe(false);
   });
 
-  it('detects fof-gamification', () => {
-    expect(createVoteAdapter(fakeApp({ 'fof-gamification': {} })).isAvailable()).toBe(true);
-  });
+  it('reads the score and the current user vote from post attributes', () => {
+    const adapter = createVoteAdapter(fakeApp());
+    const post = fakePost({ votes: 7, userVote: 'down' });
 
-  it('reads the score and the current user vote when available', () => {
-    const adapter = createVoteAdapter(fakeApp({ 'fof-gamification': {} }));
-    const post = fakePost({ votes: 7, vote: 'up' });
     expect(adapter.getScore(post)).toBe(7);
-    expect(adapter.getUserVote(post)).toBe('up');
+    expect(adapter.getUserVote(post)).toBe('down');
   });
 
-  it('returns null score and vote when unavailable', () => {
-    const adapter = createVoteAdapter(fakeApp({}));
-    const post = fakePost({ votes: 7, vote: 'up' });
-    expect(adapter.getScore(post)).toBeNull();
-    expect(adapter.getUserVote(post)).toBeNull();
+  it('returns null for missing data', () => {
+    const adapter = createVoteAdapter(fakeApp());
+
+    expect(adapter.getScore(fakePost())).toBeNull();
+    expect(adapter.getUserVote(fakePost({ userVote: 'sideways' }))).toBeNull();
   });
 
-  it('saves an up vote through post.save', async () => {
-    const adapter = createVoteAdapter(fakeApp({ 'fof-gamification': {} }));
-    const post = fakePost();
-    await adapter.vote(post, 'up');
-    expect(post.save).toHaveBeenCalledWith({ vote: 'up' });
+  it('posts an up vote and pushes the updated post', async () => {
+    const app = fakeApp();
+    const adapter = createVoteAdapter(app);
+
+    await adapter.vote(fakePost(), 'up');
+
+    expect(app.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'POST',
+        url: 'http://localhost/api/itqan-nested-replies/posts/4/vote',
+        body: { direction: 'up' },
+      })
+    );
+    expect(app.store.pushPayload).toHaveBeenCalled();
   });
 
-  it('clears a vote by saving null', async () => {
-    const adapter = createVoteAdapter(fakeApp({ 'fof-gamification': {} }));
-    const post = fakePost();
-    await adapter.vote(post, null);
-    expect(post.save).toHaveBeenCalledWith({ vote: null });
-  });
+  it('clears a vote by sending a null direction', async () => {
+    const app = fakeApp();
+    const adapter = createVoteAdapter(app);
 
-  it('does not call save when unavailable', async () => {
-    const adapter = createVoteAdapter(fakeApp({}));
-    const post = fakePost();
-    await adapter.vote(post, 'up');
-    expect(post.save).not.toHaveBeenCalled();
+    await adapter.vote(fakePost(), null);
+
+    expect(app.request).toHaveBeenCalledWith(expect.objectContaining({ body: { direction: null } }));
   });
 });

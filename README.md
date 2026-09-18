@@ -7,8 +7,8 @@ colored thread lines, collapsible comments, an optional vote rail, and admin set
 
 - Reddit-like comment cards with indentation and depth-colored thread lines.
 - Collapse/expand a comment; descendants are hidden while collapsed.
-- Vote rail that integrates [fof/gamification](https://github.com/FriendsOfFlarum/gamification)
-  when enabled (otherwise shown disabled/static).
+- Native up/down voting with a score rail, stored by this extension. Signed-in
+  users can upvote, downvote, or clear their vote.
 - Reply depth derived from the [flarum/mentions](https://github.com/flarum/framework)
   extension. Without mentions the stream still restyles, but stays flat.
 - Admin settings: enable/disable, maximum indent depth, show vote rail.
@@ -16,7 +16,9 @@ colored thread lines, collapsible comments, an optional vote rail, and admin set
 ## Requirements
 
 - Flarum 1.x or 2.x.
-- Optional: `flarum/mentions` (for indentation), `fof/gamification` (for voting).
+- Optional: `flarum/mentions` (for indentation).
+
+Voting is built into the extension and needs no other package.
 
 ## Installation
 
@@ -30,13 +32,15 @@ Then enable the extension in the admin panel and configure it under **Nested Rep
 
 Verify on a real Flarum install across these combinations:
 
-| Flarum | mentions | gamification | Expected |
-| --- | --- | --- | --- |
-| 2.x | on | on | Indented tree, clicking arrows persists votes |
-| 2.x | on | off | Indented tree, vote rail disabled |
-| 2.x | off | on | Flat restyle, votes persist |
-| 2.x | off | off | Flat restyle, no votes |
-| 1.x | on | on | Same as 2.x equivalent |
+| Flarum | mentions | Expected |
+| --- | --- | --- |
+| 2.x | on | Indented tree with depth-colored thread lines |
+| 2.x | off | Flat restyle |
+| 1.x | on | Same as 2.x equivalent |
+| 1.x | off | Same as 2.x equivalent |
+
+Votes are available to signed-in users on every supported version; guests see
+the rail disabled.
 
 ## Development
 

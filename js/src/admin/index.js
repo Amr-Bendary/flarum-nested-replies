@@ -17,5 +17,15 @@ app.initializers.add('itqan-nested-replies', () => {
       setting: 'itqan-nested-replies.show_votes',
       type: 'boolean',
       label: app.translator.trans('itqan-nested-replies.admin.settings.show_votes_label'),
+    })
+    .registerSetting({
+      setting: 'itqan-nested-replies.show_reply_tag',
+      type: 'boolean',
+      label: app.translator.trans('itqan-nested-replies.admin.settings.show_reply_tag_label'),
+    })
+    .registerSetting({
+      setting: 'itqan-nested-replies.show_replied_indicator',
+      type: 'boolean',
+      label: app.translator.trans('itqan-nested-replies.admin.settings.show_replied_indicator_label'),
     });
 });

@@ -1,32 +1,152 @@
 // Reddit-style nested reply thread theme.
 
+// Core draws a 1px separator between every stream item. The reply card below
+// draws its own dividers between top-level replies only, so remove the core
+// one.
+.PostStream .PostStream-item:not(:last-child) {
+  border-bottom: 0;
+}
+
+// Card shared by the original post and the reply tree.
+.RedditThreadCard,
+.RedditReplyCard {
+  background: #fff;
+  border: 1px solid #edeff1;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+
+  // Flarum bleeds posts into the stream container with negative margins and its
+  // own padding. Reset that so each card owns its spacing and background.
+  .Post {
+    margin: 0;
+    padding: 0;
+    background-color: transparent;
+  }
+}
+
+.RedditThreadCard {
+  padding-bottom: 20px;
+}
+
+.RedditReplyCard {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+// Divider between top-level replies only. Nested replies are separated by
+// their indentation thread line instead, so they never get a divider.
+.RedditReplyCard > .PostStream-item.is-top-level {
+  border-top: 1px solid #edeff1;
+  margin-top: 16px;
+  padding-top: 16px;
+
+  &:first-child {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 12px;
+  }
+}
+
 .RedditPost {
   --depth: 0;
+  --indent: 24px;
 
-  > .Post-container {
-    margin-left: calc(var(--depth) * 24px);
-    padding: 4px 8px;
-    border-left: 2px solid transparent;
+  // Every nested reply paints one guide line per ancestor level. Stream items
+  // stack with no vertical gaps, so the lines join into a continuous thread the
+  // reader can follow from a reply up to its original reply.
+  background-repeat: no-repeat;
+  background-size: 2px 100%;
+
+  > .RedditPost-container {
+    margin-left: ~"calc(var(--depth) * var(--indent))";
+    // No avatar gutter: the avatar is inlined in the header below, so the body
+    // can use the full card width. The 8px keeps text clear of the guide line.
+    padding: 4px 0 4px 8px;
     border-radius: 4px;
     background: transparent;
     transition: background 0.15s ease;
   }
 
-  &:hover > .Post-container {
+  // Core renders a 64px avatar, absolutely positioned 85px left of the content
+  // to sit in the page gutter. Inline it at 28px instead so replies get the
+  // maximum reading width.
+  .PostUser .PostUser-avatar {
+    position: static;
+    left: auto;
+    top: auto;
+    --size: 28px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  // The badges overlay the avatars in core's gutter layout; flow them inline
+  // after the username to match the smaller avatar.
+  .PostUser-badges {
+    float: none;
+    position: static;
+    margin: 0 0 0 4px;
+    width: auto;
+    display: inline-block;
+    text-align: left;
+    vertical-align: middle;
+
+    .Badge {
+      --size: 16px;
+      margin-left: 0;
+    }
+  }
+
+  &:hover > .RedditPost-container {
     background: rgba(0, 0, 0, 0.025);
   }
 
-  &[data-depth="1"] > .Post-container { border-left-color: #7193ff; }
-  &[data-depth="2"] > .Post-container { border-left-color: #ff8717; }
-  &[data-depth="3"] > .Post-container { border-left-color: #46d160; }
-  &[data-depth="4"] > .Post-container { border-left-color: #ff4500; }
-  &[data-depth="5"] > .Post-container { border-left-color: #7b61ff; }
+  &[data-depth="1"] {
+    background-image: linear-gradient(#7193ff, #7193ff);
+    background-position: ~"calc(var(--indent) * 1) 0";
+  }
+
+  &[data-depth="2"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0";
+  }
+
+  &[data-depth="3"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0";
+  }
+
+  &[data-depth="4"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0";
+  }
+
+  &[data-depth="5"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0";
+  }
+
+  &[data-depth="6"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff), linear-gradient(#7193ff, #7193ff);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0", ~"calc(var(--indent) * 6) 0";
+  }
+
+  &[data-depth="7"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff), linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0", ~"calc(var(--indent) * 6) 0", ~"calc(var(--indent) * 7) 0";
+  }
+
+  &[data-depth="8"] {
+    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff), linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160);
+    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0", ~"calc(var(--indent) * 6) 0", ~"calc(var(--indent) * 7) 0", ~"calc(var(--indent) * 8) 0";
+  }
 
   &[data-hidden="true"] {
     display: none;
   }
 
-  &[data-collapsed="true"] > .Post-container {
+  &[data-collapsed="true"] > .RedditPost-container {
     .Post-body,
     .Post-content,
     .Post-footer {
@@ -37,11 +157,11 @@
 
 .RedditVoteRail {
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin-right: 8px;
-  vertical-align: top;
+  vertical-align: middle;
   color: var(--muted-color);
 
   &.is-disabled {
@@ -79,8 +199,40 @@
   }
 }
 
+// "Reply to X" tag shown in the post header, replacing the inline mention.
+// `a.` keeps it above core's `.Post-header a` colour rule.
+a.RedditReplyTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e6f4ea;
+  color: #1c1c1c;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  vertical-align: middle;
+  white-space: nowrap;
+
+  .icon {
+    font-size: 11px;
+    color: #2e7d32;
+  }
+}
+
+// The inline post mention is hidden now that its header tag is shown.
+.RedditReplyTag-source {
+  display: none;
+}
+
+// Optional: hide core mentions' "You replied to this." summary.
+.RedditHideMentionedBy .Post-mentionedBy {
+  display: none;
+}
+
 @media @phone {
-  .RedditPost > .Post-container {
-    margin-left: calc(var(--depth) * 12px);
+  .RedditPost {
+    --indent: 12px;
   }
 }
