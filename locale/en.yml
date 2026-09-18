@@ -1,0 +1,11 @@
+itqan-nested-replies:
+  admin:
+    settings:
+      enabled_label: Reddit-style nested replies
+      max_depth_label: Maximum indent depth
+      show_votes_label: Show vote rail
+  forum:
+    collapse: Collapse replies
+    expand: Expand replies
+    upvote: Upvote
+    downvote: Downvote
