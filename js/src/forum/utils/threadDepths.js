@@ -1,11 +1,11 @@
 export function getParentId(post) {
-  if (!post || typeof post.mentionsPosts !== "function") return null;
+  if (!post || typeof post.mentionsPosts !== 'function') return null;
 
   const mentions = post.mentionsPosts();
   if (!Array.isArray(mentions) || mentions.length === 0) return null;
 
   const first = mentions[0];
-  if (!first || typeof first.id !== "function") return null;
+  if (!first || typeof first.id !== 'function') return null;
 
   return String(first.id());
 }
