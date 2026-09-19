@@ -1,8 +1,10 @@
 import { extend, override } from 'flarum/common/extend';
 import app from 'flarum/forum/app';
 import icon from 'flarum/common/helpers/icon';
+import Button from 'flarum/common/components/Button';
 import Post from 'flarum/forum/components/Post';
 import CommentPost from 'flarum/forum/components/CommentPost';
+import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
 import PostStream from 'flarum/forum/components/PostStream';
 import ReplyPlaceholder from 'flarum/forum/components/ReplyPlaceholder';
 import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
@@ -27,10 +29,102 @@ app.initializers.add('mtareq-nested-replies', () => {
   let allPosts = null;
   let loadingAll = false;
   let currentDiscussion = null;
+  let pendingParentId = null;
 
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('NestedRepliesHideMentionedBy', !settings.showRepliedIndicator);
     document.documentElement.style.setProperty('--nested-replies-like-color', settings.likeColor || '#ff4500');
+  }
+
+  // Ensure every post has a Reply action. flarum/mentions supplies one when it
+  // is enabled; otherwise we add our own so threading still works.
+  extend(CommentPost.prototype, 'actionItems', function (items) {
+    if (items.has('reply')) return;
+
+    const post = this.attrs.post;
+    if (!post || post.isHidden()) return;
+    if (app.session.user && !post.discussion().canReply()) return;
+
+    items.add(
+      'reply',
+      m(
+        Button,
+        {
+          className: 'Button Button--link',
+          onclick: () => {
+            pendingParentId = String(post.id());
+            DiscussionControls.replyAction.call(post.discussion());
+          },
+        },
+        app.translator.trans('mtareq-nested-replies.forum.reply_link')
+      ),
+      0
+    );
+  });
+
+  // The tree follows the post whose Reply button was clicked, not mentions in
+  // the body. Works for our button and, when enabled, mentions' button.
+  if (typeof document !== 'undefined') {
+    document.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target;
+        const replyItem = target && target.closest ? target.closest('.item-reply') : null;
+
+        if (replyItem) {
+          const item = replyItem.closest('.PostStream-item[data-id]');
+          if (item) pendingParentId = String(item.getAttribute('data-id'));
+          return;
+        }
+
+        // The discussion-level reply box has no target post.
+        if (target && target.closest && target.closest('.ReplyPlaceholder')) {
+          pendingParentId = null;
+        }
+      },
+      true
+    );
+  }
+
+  function attachReplyParent(body) {
+    if (!body || body.__nestedRepliesParentPatched) return;
+    if (!body.attrs || !body.attrs.discussion || body.attrs.post) return;
+
+    body.__nestedRepliesParentPatched = true;
+
+    const originalData = body.data;
+    body.data = function () {
+      const data = (originalData ? originalData.call(this) : {}) || {};
+      if (pendingParentId != null) data.replyToPostId = pendingParentId;
+      return data;
+    };
+
+    const originalSubmit = body.onsubmit;
+    body.onsubmit = function (...args) {
+      const result = originalSubmit ? originalSubmit.apply(this, args) : undefined;
+      pendingParentId = null;
+      return result;
+    };
+
+    const originalRemove = body.onremove;
+    body.onremove = function (...args) {
+      pendingParentId = null;
+      return originalRemove ? originalRemove.apply(this, args) : undefined;
+    };
+  }
+
+  if (app.composer && typeof app.composer.load === 'function') {
+    override(app.composer, 'load', function (original, componentClass, attrs) {
+      const result = original.call(this, componentClass, attrs);
+
+      if (result && typeof result.then === 'function') {
+        result.then(() => attachReplyParent(this.body));
+      } else {
+        attachReplyParent(this.body);
+      }
+
+      return result;
+    });
   }
 
   // Flarum's discussion-list links resume at the first unread post. Optionally
@@ -97,13 +191,17 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     syncLikedClass(element, post);
 
-    // The reply target is shown as a tag in the header, so hide the inline
-    // mention Flarum renders at the start of the body.
+    // The reply target is shown as a tag in the header, so hide only the inline
+    // mention that points at the stored parent.
     if (settings.showReplyTag) {
-      const body = element.querySelector('.Post-body') || element.querySelector('.Post-content');
-      if (body) {
-        const mention = body.querySelector('a.PostMention');
-        if (mention) mention.classList.add('NestedRepliesReplyTag-source');
+      const parentId = getParentId(post);
+
+      if (parentId) {
+        const body = element.querySelector('.Post-body') || element.querySelector('.Post-content');
+        if (body) {
+          const mention = body.querySelector(`a.PostMention[data-id="${parentId}"]`);
+          if (mention) mention.classList.add('NestedRepliesReplyTag-source');
+        }
       }
     }
   }
@@ -385,13 +483,13 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (!settings.showReplyTag) return;
 
     const post = this.attrs.post;
-    const target = getReplyTarget(post);
+    const target = getReplyTarget(post, lookup);
 
     if (!target || !target.name) return;
 
     items.add(
       'nestedRepliesReplyTag',
-      m('a.NestedRepliesReplyTag', { href: target.href || '#', title: target.name }, [
+      m('a.NestedRepliesReplyTag', { href: target.post ? app.route.post(target.post) : '#', title: target.name }, [
         icon('fas fa-reply'),
         m('span.NestedRepliesReplyTag-label', app.translator.trans('mtareq-nested-replies.forum.reply_to', { username: target.name })),
       ]),

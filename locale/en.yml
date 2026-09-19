@@ -14,6 +14,7 @@ mtareq-nested-replies:
     upvote: Upvote
     downvote: Downvote
     reply_to: "Reply to {username}"
+    reply_link: Reply
     sort_by: "Sort by:"
     sort_oldest: Oldest
     sort_newest: Newest
