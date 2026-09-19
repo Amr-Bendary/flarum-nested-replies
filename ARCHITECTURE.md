@@ -9,13 +9,13 @@ The extension has two halves that meet over Flarum's normal extension APIs:
 
 - **PHP backend** — declares settings, serializes them to the forum, exposes a
   vote endpoint, and adds `votes` / `userVote` to every serialized post.
-- **JS frontend** — reads the serialized settings, derives reply depth from post
-  mentions, restyles the post stream into cards, and renders the vote and
-  collapse controls.
+- **JS frontend** — reads the serialized settings, derives reply depth from a
+  stored reply-parent link, restyles the post stream into cards, and renders the
+  vote and collapse controls.
 
-There is no custom database relation between posts. The reply tree is derived
-client-side from the mentions that `flarum/mentions` already records, so the
-extension stays compatible with Flarum's flat post stream.
+The reply tree is stored explicitly: the `mtareq_nested_replies_parents` table maps a
+reply post to the post it answers. The frontend renders depth from that link, and the
+extension supplies its own per-post Reply action when `flarum/mentions` is not installed.
 
 ## Package layout
 
@@ -24,9 +24,13 @@ composer.json                     Flarum extension manifest (name, namespace, ic
 extend.php                        Backend registration (assets, settings, routes, serializer)
 src/
   PostVote.php                    Eloquent model for the votes table
+  PostReply.php                   Eloquent model for the reply-parent table
+  Listener/
+    StoreReplyParent.php          Persists replyToPostId on post creation
   Api/VotePostController.php      POST vote endpoint
 migrations/
   2026_09_18_000000_create_nested_replies_votes_table.php
+  2026_09_19_000000_create_nested_replies_parents_table.php
 locale/
   en.yml, ar.yml                  Admin + forum translations
 less/
@@ -58,6 +62,12 @@ js/
   - `votes` — sum of the post's vote values.
   - `userVote` — `'up'`, `'down'`, or `null` for the current actor.
 
+### Reply parent and serialization
+
+- The `Flarum\Post\Event\Saving` listener reads `attributes.replyToPostId` and stores
+  it after save; serialization branches on `class_exists(PostResource)` to support 1.x
+  (`ApiSerializer`) and 2.x (`ApiResource` fields), including the `votes`/`userVote` port.
+
 ### `src/PostVote.php` + migration
 
 A thin model over `mtareq_nested_replies_votes` with `post_id`, `user_id`, and
@@ -88,14 +98,13 @@ initializers before `app.forum` is assigned.
 
 Pure, dependency-injected functions — the only part covered by fast unit tests:
 
-- `getParentId(post)` — resolves the parent post id, preferring Flarum 2.x's
-  `mentionsPosts()`, then the rendered `PostMention` in `contentHtml()`, then the
-  raw `#p123` syntax (Flarum 1.x).
+- `getParentId(post)` — reads the stored `replyToPostId` attribute; returns null for
+  top-level posts.
 - `getDepth(post, maxDepth, lookup)` — walks parents, never counting the original
   post as a level, and caps at `maxDepth`. Cycle-safe.
 - `getAncestorIds` / `isHidden` — used to hide descendants of a collapsed post.
-- `getReplyTarget(post)` — extracts `{ id, href, name }` from the rendered
-  mention for the header tag.
+- `getReplyTarget(post, getPostById)` — resolves the stored parent and its author for
+  the header tag.
 
 ### Stream regrouping (`forum/index.js`)
 
@@ -160,8 +169,8 @@ settings.js readSettings(app)        -> typed settings object for the UI
 ## Dependencies
 
 - `flarum/core` — required.
-- `flarum/mentions` — optional but recommended; the reply tree is derived from
-  its mention data, so without it threads render flat.
+- `flarum/mentions` — optional; when present its per-post Reply button is reused,
+  otherwise this extension renders one. Threading never depends on mentions.
 - `flarum/likes` — optional; only relevant to the themed Like action and the
   `like_color` setting.
 

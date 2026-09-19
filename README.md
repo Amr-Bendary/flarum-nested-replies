@@ -12,8 +12,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the extension is put together.
 - Native up/down voting with a score rail, stored by this extension. Signed-in
   users can upvote, downvote, or clear their vote.
 - Reply sorting per discussion: oldest, newest, top voted, or most replies.
-- Reply depth derived from the [flarum/mentions](https://github.com/flarum/framework)
-  extension. Without mentions the stream still restyles, but stays flat.
+- Reply parent stored explicitly per reply (the post whose Reply button was clicked),
+  so quoting several people never changes the thread structure.
 - Optional "Reply to {username}" header tag, like color, and more via admin settings.
 
 ## Requirements
@@ -25,7 +25,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the extension is put together.
 | Package | Required | Why |
 | --- | --- | --- |
 | `flarum/core` | Yes | Provides the extension API, post stream, and `PostSerializer`. |
-| `flarum/mentions` | Recommended | Nesting is derived from each post's mention of its parent. Without it, replies cannot be linked to a parent, so the stream restyles but stays flat. |
+| `flarum/mentions` | No | Optional. Its per-post Reply button is reused when present; otherwise this extension renders one. Threading never depends on mentions. |
 | `flarum/likes` | No | Adds the Like action that this theme restyles and colors. Without it, there is simply no Like chip to theme; voting from this extension is unaffected. |
 
 Voting is built into this extension and needs no other package.
@@ -49,7 +49,7 @@ forum as `nestedReplies*` attributes.
 | Enable nested replies | `mtareq-nested-replies.enabled` | Boolean | `on` | Master switch. When off, the post stream renders with Flarum's default layout. |
 | Maximum indent depth | `mtareq-nested-replies.max_depth` | Number | `5` | Deepest indent level a reply is drawn at. Replies past this depth are shown at the cap, keeping deep threads readable. |
 | Show vote rail | `mtareq-nested-replies.show_votes` | Boolean | `on` | Shows the up/down vote rail in each post's action bar. |
-| Show "Reply to" tag | `mtareq-nested-replies.show_reply_tag` | Boolean | `on` | Shows a "Reply to {username}" tag in the header and hides the inline mention at the start of the body. |
+| Show "Reply to" tag | `mtareq-nested-replies.show_reply_tag` | Boolean | `on` | Shows a "Reply to {username}" tag in the header and hides the inline mention that points at the stored parent. |
 | Show "replied to this" indicator | `mtareq-nested-replies.show_replied_indicator` | Boolean | `on` | Shows flarum/mentions' "You replied to this." summary above the post. Turn off to hide it. |
 | Like color (active) | `mtareq-nested-replies.like_color` | Color | `#ff4500` | Color of the Like action once a post is liked (requires `flarum/likes`). |
 | Start discussions at the first post | `mtareq-nested-replies.start_at_first_post` | Boolean | `on` | Opens a discussion at the original post instead of jumping to the first unread post. Search-result jumps are preserved. |
@@ -61,9 +61,9 @@ Verify on a real Flarum install across these combinations:
 | Flarum | mentions | Expected |
 | --- | --- | --- |
 | 2.x | on | Indented tree with depth-colored thread lines |
-| 2.x | off | Flat restyle |
+| 2.x | off | Nested threading works; this extension supplies the per-post Reply action |
 | 1.x | on | Same as 2.x equivalent |
-| 1.x | off | Same as 2.x equivalent |
+| 1.x | off | Nested threading works; this extension supplies the per-post Reply action |
 
 Votes are available to signed-in users on every supported version; guests see
 the rail disabled.
