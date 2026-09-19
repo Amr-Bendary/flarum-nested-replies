@@ -5,9 +5,10 @@ use Flarum\Extend;
 use Flarum\Post\Event\Saving;
 use Mtareq\NestedReplies\Api\VotePostController;
 use Mtareq\NestedReplies\Listener\StoreReplyParent;
+use Mtareq\NestedReplies\PostReply;
 use Mtareq\NestedReplies\PostVote;
 
-return [
+$extenders = [
     (new Extend\Frontend('forum'))
         ->js(__DIR__.'/js/dist/forum.js')
         ->css(__DIR__.'/less/forum.less'),
@@ -37,7 +38,52 @@ return [
     (new Extend\Event())
         ->listen(Saving::class, StoreReplyParent::class),
 
-    (new Extend\ApiSerializer(PostSerializer::class))
+    new Extend\Locales(__DIR__.'/locale'),
+];
+
+if (class_exists(\Flarum\Api\Resource\PostResource::class)) {
+    // Flarum 2.x
+    $extenders[] = (new Extend\ApiResource(\Flarum\Api\Resource\PostResource::class))
+        ->fields(function () {
+            return [
+                \Flarum\Api\Schema\Integer::make('votes')
+                    ->get(function ($post) {
+                        return (int) PostVote::query()->where('post_id', $post->id)->sum('value');
+                    }),
+
+                \Flarum\Api\Schema\Str::make('userVote')
+                    ->nullable()
+                    ->get(function ($post, $context) {
+                        $actor = $context->getActor();
+
+                        if (! $actor || ! $actor->exists) {
+                            return null;
+                        }
+
+                        $vote = PostVote::query()
+                            ->where('post_id', $post->id)
+                            ->where('user_id', $actor->id)
+                            ->first();
+
+                        return $vote ? ($vote->value > 0 ? 'up' : 'down') : null;
+                    }),
+
+                \Flarum\Api\Schema\Integer::make('replyToPostId')
+                    ->nullable()
+                    ->writableOnCreate()
+                    ->get(function ($post) {
+                        $link = PostReply::query()->where('post_id', $post->id)->first();
+
+                        return $link ? (int) $link->parent_post_id : null;
+                    })
+                    ->set(function ($post, $value, $context) {
+                        // Persistence is owned by the Saving listener.
+                    }),
+            ];
+        });
+} else {
+    // Flarum 1.x
+    $extenders[] = (new Extend\ApiSerializer(PostSerializer::class))
         ->attribute('votes', function ($serializer, $post) {
             return (int) PostVote::query()->where('post_id', $post->id)->sum('value');
         })
@@ -58,7 +104,12 @@ return [
             }
 
             return $vote->value > 0 ? 'up' : 'down';
-        }),
+        })
+        ->attribute('replyToPostId', function ($serializer, $post) {
+            $link = PostReply::query()->where('post_id', $post->id)->first();
 
-    new Extend\Locales(__DIR__.'/locale'),
-];
+            return $link ? (int) $link->parent_post_id : null;
+        });
+}
+
+return $extenders;
