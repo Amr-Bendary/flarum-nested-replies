@@ -13,7 +13,7 @@ class StoreReplyParent
     {
         $parentId = Arr::get($event->data, 'attributes.replyToPostId');
 
-        if (! $parentId) {
+        if (! $parentId || ! is_numeric($parentId)) {
             return;
         }
 

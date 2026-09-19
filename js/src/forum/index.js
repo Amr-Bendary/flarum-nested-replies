@@ -62,8 +62,6 @@ app.initializers.add('mtareq-nested-replies', () => {
     );
   });
 
-  // The tree follows the post whose Reply button was clicked, not mentions in
-  // the body. Works for our button and, when enabled, mentions' button.
   if (typeof document !== 'undefined') {
     document.addEventListener(
       'click',
@@ -73,8 +71,24 @@ app.initializers.add('mtareq-nested-replies', () => {
 
         if (replyItem) {
           const item = replyItem.closest('.PostStream-item[data-id]');
-          // A .item-reply with no post ancestor is the discussion-level Reply.
-          pendingParentId = item ? String(item.getAttribute('data-id')) : null;
+          const id = item ? String(item.getAttribute('data-id')) : null;
+          pendingParentId = id;
+
+          // Retarget an already-open reply composer, if there is one.
+          const body = app.composer && app.composer.body;
+          const open =
+            app.composer &&
+            typeof app.composer.isVisible === 'function' &&
+            app.composer.isVisible() &&
+            body &&
+            body.attrs &&
+            body.attrs.discussion &&
+            !body.attrs.post;
+
+          if (open) {
+            body.attrs.replyToPostId = id;
+            pendingParentId = null;
+          }
           return;
         }
 
@@ -86,9 +100,6 @@ app.initializers.add('mtareq-nested-replies', () => {
     );
   }
 
-  // ComposerState.body is a { componentClass, attrs } descriptor, not the
-  // component. Patch the reply composer's class so its data() carries the
-  // stored parent, and clear the pending parent once it submits or closes.
   function patchReplyComposer(componentClass) {
     if (!componentClass || !componentClass.prototype) return;
 
@@ -99,21 +110,9 @@ app.initializers.add('mtareq-nested-replies', () => {
     const originalData = proto.data;
     proto.data = function () {
       const data = (originalData ? originalData.call(this) : {}) || {};
-      if (pendingParentId != null) data.replyToPostId = pendingParentId;
+      const attrs = this.attrs || {};
+      if (attrs.replyToPostId != null) data.replyToPostId = attrs.replyToPostId;
       return data;
-    };
-
-    const originalSubmit = proto.onsubmit;
-    proto.onsubmit = function (...args) {
-      const result = originalSubmit ? originalSubmit.apply(this, args) : undefined;
-      pendingParentId = null;
-      return result;
-    };
-
-    const originalRemove = proto.onremove;
-    proto.onremove = function (...args) {
-      pendingParentId = null;
-      return originalRemove ? originalRemove.apply(this, args) : undefined;
     };
   }
 
@@ -124,6 +123,10 @@ app.initializers.add('mtareq-nested-replies', () => {
       const apply = () => {
         const body = this.body;
         if (body && body.attrs && body.attrs.discussion && !body.attrs.post) {
+          if (pendingParentId != null) {
+            body.attrs.replyToPostId = pendingParentId;
+            pendingParentId = null;
+          }
           patchReplyComposer(body.componentClass);
         }
       };
@@ -208,7 +211,7 @@ app.initializers.add('mtareq-nested-replies', () => {
       const parentId = getParentId(post);
       const target = parentId ? getReplyTarget(post, lookup) : null;
 
-      if (parentId && target) {
+      if (parentId && target && target.name) {
         const body = element.querySelector('.Post-body') || element.querySelector('.Post-content');
         if (body) {
           const mention = body.querySelector(`a.PostMention[data-id="${parentId}"]`);
