@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getParentId, getDepth, getAncestorIds, isHidden, getReplyTarget } from './threadDepths';
+import { getParentId, getDepth, getAncestorIds, isHidden, getReplyTarget, planSiblingFolding } from './threadDepths';
 
 function build(pairs) {
   const posts = {};
@@ -145,5 +145,127 @@ describe('isHidden', () => {
     ]);
     expect(isHidden(posts['1'], new Set(['2']), lookup)).toBe(false);
     expect(isHidden(posts['2'], new Set(['2']), lookup)).toBe(false);
+  });
+});
+
+describe('planSiblingFolding', () => {
+  const order = (posts, ids) => ids.map((id) => posts[String(id)]);
+
+  it('keeps the first reply and folds the rest', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 2],
+      ['4', 2],
+      ['5', 2],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 4, 5]), { lookup, visibleReplies: 1 });
+
+    expect([...plan.hidden].sort()).toEqual(['4', '5']);
+    expect(plan.moreAfter.get('3')).toEqual([{ parentId: '2', count: 2, targetDepth: 1 }]);
+  });
+
+  it('never folds the original post direct replies', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 1],
+      ['4', 1],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 4]), { lookup, visibleReplies: 1 });
+
+    expect(plan.hidden.size).toBe(0);
+    expect(plan.moreAfter.size).toBe(0);
+  });
+
+  it('honours a larger visible count', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 2],
+      ['4', 2],
+      ['5', 2],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 4, 5]), { lookup, visibleReplies: 2 });
+
+    expect([...plan.hidden]).toEqual(['5']);
+    expect(plan.moreAfter.get('4')).toEqual([{ parentId: '2', count: 1, targetDepth: 1 }]);
+  });
+
+  it('unfolds a group the reader expanded', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 2],
+      ['4', 2],
+      ['5', 2],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 4, 5]), {
+      lookup,
+      visibleReplies: 1,
+      expandedParents: new Set(['2']),
+    });
+
+    expect(plan.hidden.size).toBe(0);
+    expect(plan.moreAfter.size).toBe(0);
+  });
+
+  it('anchors the control after the kept branch, at the hidden replies depth', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 2],
+      ['4', 2],
+      ['5', 2],
+      ['6', 3],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 6, 4, 5]), { lookup, visibleReplies: 1 });
+
+    expect([...plan.hidden].sort()).toEqual(['4', '5']);
+    expect(plan.moreAfter.get('6')).toEqual([{ parentId: '2', count: 2, targetDepth: 1 }]);
+  });
+
+  it('folds sibling groups at every depth and counts folded subtrees', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 2],
+      ['4', 2],
+      ['5', 3],
+      ['6', 3],
+      ['7', 6],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 5, 6, 7, 4]), { lookup, visibleReplies: 1 });
+
+    expect([...plan.hidden].sort()).toEqual(['4', '6', '7']);
+    expect(plan.moreAfter.get('5')).toEqual([
+      { parentId: '2', count: 1, targetDepth: 1 },
+      { parentId: '3', count: 2, targetDepth: 2 },
+    ]);
+  });
+
+  it('does not anchor a control inside an already folded subtree', () => {
+    const { posts, lookup } = build([
+      ['1', null],
+      ['2', 1],
+      ['3', 2],
+      ['4', 2],
+      ['5', 3],
+      ['6', 3],
+      ['7', 4],
+      ['8', 4],
+    ]);
+
+    const plan = planSiblingFolding(order(posts, [2, 3, 5, 6, 4, 7, 8]), { lookup, visibleReplies: 1 });
+
+    expect([...plan.hidden].sort()).toEqual(['4', '6', '7', '8']);
+    expect(plan.moreAfter.has('7')).toBe(false);
+    expect(plan.moreAfter.has('8')).toBe(false);
   });
 });

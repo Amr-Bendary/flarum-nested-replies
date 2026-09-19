@@ -10,9 +10,10 @@ import ReplyPlaceholder from 'flarum/forum/components/ReplyPlaceholder';
 import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
 import { readSettings } from '../common/settings';
 import { createVoteAdapter } from '../common/voteAdapter';
-import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId } from './utils/threadDepths';
+import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId, planSiblingFolding } from './utils/threadDepths';
 import VoteRail from './components/VoteRail';
 import CollapseToggle from './components/CollapseToggle';
+import MoreReplies from './components/MoreReplies';
 
 app.initializers.add('mtareq-nested-replies', () => {
   const settings = readSettings(app);
@@ -20,10 +21,14 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   const votes = createVoteAdapter(app);
   const collapsed = new Set();
-  const autoFolded = new Set();
-  const userToggled = new Set();
+  const expandedGroups = new Set();
   const mounted = new Set();
   const lookup = (id) => app.store.getById('posts', String(id));
+
+  // Recomputed on every stream render. `hidden` holds replies (and their
+  // subtrees) folded behind a "Show more replies" control; `moreAfter` maps the
+  // post that anchors each control to the groups it reveals.
+  let foldPlan = { hidden: new Set(), moreAfter: new Map() };
 
   // Reply-card sorting. `oldest` uses Flarum's native stream; the other modes
   // fetch every page first so pagination can't leave posts out of the order.
@@ -177,25 +182,10 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     const id = String(post.id());
     const depth = getDepth(post, settings.maxDepth, lookup);
-    const hidden = isHidden(post, collapsed, lookup);
+    // A reply is hidden when the reader collapsed an ancestor or when a sibling
+    // group above it is folded behind a "Show more replies" control.
+    const hidden = isHidden(post, collapsed, lookup) || foldPlan.hidden.has(id);
     const op = isOriginalPost(post);
-
-    // Fold a large subtree by default. The count is serialized by the backend
-    // so it is accurate even before every page of replies has loaded. Once the
-    // user toggles a post we never auto-fold it again.
-    let didAutoFold = false;
-
-    if (
-      !op &&
-      settings.autoFoldThreshold > 0 &&
-      !userToggled.has(id) &&
-      !autoFolded.has(id) &&
-      Number(post.attribute ? post.attribute('nestedRepliesReplyCount') : 0) > settings.autoFoldThreshold
-    ) {
-      collapsed.add(id);
-      autoFolded.add(id);
-      didAutoFold = true;
-    }
 
     element.classList.add('NestedRepliesPost');
     element.classList.toggle('NestedRepliesPost--op', op);
@@ -215,6 +205,11 @@ app.initializers.add('mtareq-nested-replies', () => {
       item.classList.toggle('is-top-level', depth === 0 && !op);
       item.classList.toggle('is-nested', depth > 0);
     }
+
+    // The post that anchors a "Show more replies" control sits flush with its
+    // fold point, so the indent guides end at the control instead of trailing
+    // past it.
+    element.classList.toggle('NestedRepliesPost--hasMore', foldPlan.moreAfter.has(id));
 
     if (collapsed.has(id)) element.dataset.collapsed = 'true';
     else delete element.dataset.collapsed;
@@ -238,9 +233,6 @@ app.initializers.add('mtareq-nested-replies', () => {
         }
       }
     }
-
-    // The action bar was rendered before we folded, so refresh it once.
-    if (didAutoFold) forceRedraw();
   }
 
   // Pull every page of the discussion from the API so sorting sees all posts.
@@ -382,27 +374,32 @@ app.initializers.add('mtareq-nested-replies', () => {
     ]);
   }
 
+  // The tree layout needs every reply in the discussion so children can be
+  // nested under their parent, so we load all pages once per discussion (for
+  // every sort mode, including the default `oldest`).
+  function loadAllPosts() {
+    if (allPosts !== null || loadingAll) return;
+
+    loadingAll = true;
+    m.redraw();
+
+    fetchAllPosts()
+      .then((posts) => {
+        allPosts = posts && posts.length ? posts : [];
+      })
+      .catch(() => {
+        allPosts = [];
+      })
+      .then(() => {
+        loadingAll = false;
+        m.redraw();
+      });
+  }
+
   function setSortMode(mode) {
     sortMode = mode;
-
-    if (mode !== 'oldest' && !allPosts) {
-      loadingAll = true;
-      m.redraw();
-
-      fetchAllPosts()
-        .then((posts) => {
-          allPosts = posts;
-        })
-        .catch(() => {
-          allPosts = null;
-        })
-        .then(() => {
-          loadingAll = false;
-          m.redraw();
-        });
-    } else {
-      m.redraw();
-    }
+    loadAllPosts();
+    m.redraw();
   }
 
   // Flarum's post stream is a flat list. A nested-reply layout wants the original
@@ -414,18 +411,30 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (nextDiscussion !== currentDiscussion) {
       currentDiscussion = nextDiscussion;
       collapsed.clear();
-      autoFolded.clear();
-      userToggled.clear();
+      expandedGroups.clear();
+      allPosts = null;
+      loadingAll = false;
+      foldPlan = { hidden: new Set(), moreAfter: new Map() };
     }
+
+    // Kick off loading every page so the tree can be ordered. The flat native
+    // stream renders meanwhile and is swapped out once the posts arrive.
+    loadAllPosts();
 
     const vnode = original();
 
-    if (sortMode !== 'oldest' && allPosts && allPosts.length) {
-      // Sorted mode renders the whole discussion from our own ordering, so stop
-      // the native stream from paginating underneath it.
+    if (allPosts && allPosts.length) {
+      // The tree view renders the whole discussion from our own ordering, so
+      // stop the native stream from paginating underneath it.
       if (this.stream) this.stream.paused = true;
 
       const { op, ordered } = buildReplyOrder(allPosts, sortMode);
+
+      foldPlan = planSiblingFolding(ordered, {
+        lookup,
+        visibleReplies: settings.visibleReplies,
+        expandedParents: expandedGroups,
+      });
 
       const chrono = [...allPosts].sort((a, b) => Number(a.number()) - Number(b.number()));
       const indexOf = new Map(chrono.map((post, i) => [String(post.id()), i]));
@@ -466,6 +475,14 @@ app.initializers.add('mtareq-nested-replies', () => {
     const replies = rest.filter(isPostItem);
     const tail = rest.filter((child) => !isPostItem(child));
 
+    const replyPosts = replies.map((child) => lookup(child.attrs['data-id'])).filter(Boolean);
+
+    foldPlan = planSiblingFolding(replyPosts, {
+      lookup,
+      visibleReplies: settings.visibleReplies,
+      expandedParents: expandedGroups,
+    });
+
     const grouped = [...before, m('div.NestedRepliesThreadCard', { key: 'nestedRepliesThreadCard' }, op)];
 
     if (replies.length) {
@@ -492,12 +509,15 @@ app.initializers.add('mtareq-nested-replies', () => {
   function toggleCollapse(post) {
     const id = String(post.id());
 
-    userToggled.add(id);
-    autoFolded.delete(id);
-
     if (collapsed.has(id)) collapsed.delete(id);
     else collapsed.add(id);
 
+    forceRedraw();
+  }
+
+  // Reveal every reply hidden behind a folded sibling group's control.
+  function expandGroup(parentId) {
+    expandedGroups.add(String(parentId));
     forceRedraw();
   }
 
@@ -553,7 +573,12 @@ app.initializers.add('mtareq-nested-replies', () => {
     const post = this.attrs.post;
     if (!post) return;
 
-    if (!isOriginalPost(post)) {
+    // Only offer collapse when the reply actually has replies. The backend
+    // serializes the subtree count, so this is accurate even before every page
+    // of nested replies has loaded.
+    const replyCount = Number(post.attribute ? post.attribute('nestedRepliesReplyCount') : 0);
+
+    if (!isOriginalPost(post) && replyCount > 0) {
       items.add(
         'nestedRepliesCollapse',
         m(CollapseToggle, {
@@ -574,22 +599,50 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (!post) return;
 
     const id = String(post.id());
-    if (!collapsed.has(id)) return;
 
-    const count = Number(post.attribute ? post.attribute('nestedRepliesReplyCount') : 0);
-    if (count <= 0) return;
+    // Folded sibling groups anchor their "Show more replies" control to the
+    // last visible reply of the kept branch. A group can be nested inside
+    // another group's kept branch, so render deepest-first.
+    const groups = foldPlan.moreAfter.get(id);
+    if (groups && groups.length) {
+      const actualDepth = getDepth(post, settings.maxDepth, lookup);
 
-    items.add(
-      'nestedRepliesMoreReplies',
-      m(
-        Button,
-        {
-          className: 'Button Button--link NestedRepliesMoreReplies',
-          onclick: () => toggleCollapse(post),
-        },
-        [icon('fas fa-plus'), m('span', app.translator.trans('mtareq-nested-replies.forum.more_replies', { count }))]
-      ),
-      10
-    );
+      [...groups]
+        .sort((a, b) => b.targetDepth - a.targetDepth)
+        .forEach((group, index) => {
+          items.add(
+            'nestedRepliesShowMore' + index,
+            m(MoreReplies, {
+              count: group.count,
+              depth: group.targetDepth,
+              // Line the control up with the depth of the hidden replies. Hidden
+              // replies always belong one level below a post in the anchor's own
+              // branch, so the control may sit beside or to the right of the
+              // anchor's content column.
+              indent: group.targetDepth - actualDepth,
+              onclick: () => expandGroup(group.parentId),
+            }),
+            20
+          );
+        });
+    }
+
+    if (collapsed.has(id)) {
+      const count = Number(post.attribute ? post.attribute('nestedRepliesReplyCount') : 0);
+      if (count <= 0) return;
+
+      items.add(
+        'nestedRepliesMoreReplies',
+        m(
+          Button,
+          {
+            className: 'Button Button--link NestedRepliesMoreReplies',
+            onclick: () => toggleCollapse(post),
+          },
+          [icon('fas fa-plus'), m('span', app.translator.trans('mtareq-nested-replies.forum.more_replies', { count }))]
+        ),
+        10
+      );
+    }
   });
 });

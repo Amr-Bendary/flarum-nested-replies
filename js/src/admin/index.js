@@ -39,8 +39,8 @@ app.initializers.add('mtareq-nested-replies', () => {
       label: app.translator.trans('mtareq-nested-replies.admin.settings.start_at_first_post_label'),
     })
     .registerSetting({
-      setting: 'mtareq-nested-replies.auto_fold_threshold',
+      setting: 'mtareq-nested-replies.visible_replies',
       type: 'number',
-      label: app.translator.trans('mtareq-nested-replies.admin.settings.auto_fold_threshold_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.visible_replies_label'),
     });
 });

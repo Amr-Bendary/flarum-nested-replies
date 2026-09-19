@@ -8,7 +8,7 @@ mtareq-nested-replies:
       show_replied_indicator_label: Show "replied to this" indicator
       like_color_label: Like color (active)
       start_at_first_post_label: Start discussions at the first post
-      auto_fold_threshold_label: Auto-fold a reply with more descendants than
+      visible_replies_label: Replies shown per level before folding the rest
   forum:
     collapse: Collapse replies
     expand: Expand replies
@@ -16,6 +16,7 @@ mtareq-nested-replies:
     downvote: Downvote
     reply_to: "Reply to {username}"
     more_replies: "{count} more replies"
+    show_more_replies: Show more replies
     reply_link: Reply
     sort_by: "Sort by:"
     sort_oldest: Oldest

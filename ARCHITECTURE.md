@@ -43,6 +43,7 @@ js/
     forum/components/
       VoteRail.js                 Up/down vote control
       CollapseToggle.js           Collapse/expand control
+      MoreReplies.js              "Show more replies" control for folded siblings
     forum/utils/threadDepths.js   Pure reply-tree / depth logic
     common/settings.js            Reads serialized forum settings
     common/voteAdapter.js         Vote read/write adapter
@@ -105,6 +106,10 @@ Pure, dependency-injected functions — the only part covered by fast unit tests
 - `getAncestorIds` / `isHidden` — used to hide descendants of a collapsed post.
 - `getReplyTarget(post, getPostById)` — resolves the stored parent and its author for
   the header tag.
+- `planSiblingFolding(posts, options)` — given the replies in render order, works out
+  which sibling groups fold, the hidden ids (folded replies and their subtrees), and
+  where each "Show more replies" control anchors so it lines up with the depth of the
+  hidden replies.
 
 ### Stream regrouping (`forum/index.js`)
 
@@ -129,17 +134,29 @@ children always follow their parent. `oldest` uses Flarum's native stream; the
 other modes (newest, top, replies) first fetch every page of the discussion
 (`fetchAllPosts`) and pause native pagination for the sorted view.
 
-### Collapse state
+### Fold state
 
-Held in an in-memory `Set` of post ids. `isHidden` hides any post with a
-collapsed ancestor. A manual `forceRedraw()` invalidates mounted `Post`
-subtrees so Flarum 1.x rebuilds without a full page reload.
+Replies are unfolded by default. Two independent mechanisms hide content:
+
+- **Manual collapse** — an in-memory `Set` of post ids. `isHidden` hides any post
+  with a collapsed ancestor; the `CollapseToggle` flips it.
+- **Sibling folding** — `planSiblingFolding` runs on each stream render. When a
+  reply has more direct replies than `visibleReplies`, only the first few stay
+  visible and the rest (with their subtrees) are hidden behind a `MoreReplies`
+  control. The control is anchored to the last post of the kept branch and
+  indented to the depth of the hidden replies. `expandedGroups` remembers groups
+  the reader has opened.
+
+A manual `forceRedraw()` invalidates mounted `Post` subtrees so Flarum 1.x
+rebuilds without a full page reload.
 
 ### Components
 
 - `VoteRail` — reads `score` / `current` from the `voteAdapter`, disables itself
   for guests, and toggles a vote off when the active direction is clicked again.
 - `CollapseToggle` — icon button that flips the collapsed state via callback.
+- `MoreReplies` — "Show more replies" pill for a folded sibling group; reveals the
+  group via callback and lines up with the hidden replies using a depth delta.
 
 ### Styling (`less/forum.less`)
 
@@ -165,6 +182,7 @@ settings.js readSettings(app)        -> typed settings object for the UI
 | `nestedRepliesShowRepliedIndicator` | `mtareq-nested-replies.show_replied_indicator` | bool |
 | `nestedRepliesLikeColor` | `mtareq-nested-replies.like_color` | string |
 | `nestedRepliesStartAtFirstPost` | `mtareq-nested-replies.start_at_first_post` | bool |
+| `nestedRepliesVisibleReplies` | `mtareq-nested-replies.visible_replies` | int |
 
 ## Dependencies
 

@@ -8,7 +8,7 @@ mtareq-nested-replies:
       show_replied_indicator_label: 'إظهار مؤشر "ردّ على هذا"'
       like_color_label: لون الإعجاب (عند التفعيل)
       start_at_first_post_label: بدء المناقشات من المشاركة الأولى
-      auto_fold_threshold_label: الطي التلقائي للرد الذي يتجاوز عدد ردوده الفرعية
+      visible_replies_label: عدد الردود الظاهرة لكل مستوى قبل طي الباقي
   forum:
     collapse: طيّ الردود
     expand: توسيع الردود
@@ -16,6 +16,7 @@ mtareq-nested-replies:
     downvote: تصويت سلبي
     reply_to: "الرد على {username}"
     more_replies: "{count} ردود أخرى"
+    show_more_replies: إظهار المزيد من الردود
     reply_link: رد
     sort_by: "ترتيب حسب:"
     sort_oldest: الأقدم

@@ -1,5 +1,10 @@
 // Nested reply thread theme.
 
+// Indent-guide colours, matching the Figma thread lines (green / orange
+// alternating by depth).
+@nested-thread-a: rgba(12, 166, 120, 0.19);
+@nested-thread-b: rgba(253, 126, 20, 0.19);
+
 // Core draws a 1px separator between every stream item. The reply card below
 // draws its own dividers between top-level replies only, so remove the core
 // one.
@@ -68,11 +73,11 @@
 
   > .NestedRepliesPost-container {
     margin-inline-start: ~"calc(var(--depth) * var(--indent))";
-    // No avatar gutter: the avatar is inlined in the header below, so the body
-    // can use the full card width. The 8px keeps text clear of the guide line,
-    // and the bottom padding separates the action bar from the next reply.
+    // A 24px guide gutter on the inline-start holds the thread line and the
+    // fold/unfold button, both centred on it, so the line runs through the
+    // middle of the button and the text starts clear of them.
     padding-block: 4px 14px;
-    padding-inline: 8px 0;
+    padding-inline: 24px 0;
     border-radius: 4px;
     background: transparent;
     transition: background 0.15s ease;
@@ -111,44 +116,63 @@
     background: rgba(0, 0, 0, 0.025);
   }
 
+  // A post holding a folded sibling group ends at the control, so the thread
+  // guide lines stop there rather than running past it. An opaque, indented
+  // footer fill covers every thread column this post paints from the moment
+  // the fold zone begins, so the folded group's guide lines run down to the
+  // control and end at its top edge (the control is opaque itself).
+  &--hasMore > .NestedRepliesPost-container {
+    padding-bottom: 0;
+
+    .Post-footer {
+      background: #fff;
+      // Stretch the fill from the shallowest thread column (one indent in, minus
+      // the line's own 2px) to the inline-end, so no guide line pokes out below
+      // the control; an equal inline-start padding returns the content to its
+      // normal spot.
+      margin-inline-start: ~"calc(-15px - (var(--depth) - 1) * var(--indent))";
+      padding-inline-start: ~"calc(15px + (var(--depth) - 1) * var(--indent))";
+    }
+  }
+
   &[data-depth="1"] {
-    background-image: linear-gradient(#7193ff, #7193ff);
-    background-position: ~"calc(var(--indent) * 1) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0";
   }
 
   &[data-depth="2"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0";
   }
 
   &[data-depth="3"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0", ~"calc(var(--indent) * 3 + 11px) 0";
   }
 
   &[data-depth="4"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0", ~"calc(var(--indent) * 3 + 11px) 0", ~"calc(var(--indent) * 4 + 11px) 0";
   }
 
   &[data-depth="5"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0", ~"calc(var(--indent) * 3 + 11px) 0", ~"calc(var(--indent) * 4 + 11px) 0", ~"calc(var(--indent) * 5 + 11px) 0";
   }
 
   &[data-depth="6"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff), linear-gradient(#7193ff, #7193ff);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0", ~"calc(var(--indent) * 6) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0", ~"calc(var(--indent) * 3 + 11px) 0", ~"calc(var(--indent) * 4 + 11px) 0", ~"calc(var(--indent) * 5 + 11px) 0", ~"calc(var(--indent) * 6 + 11px) 0";
   }
 
   &[data-depth="7"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff), linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0", ~"calc(var(--indent) * 6) 0", ~"calc(var(--indent) * 7) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0", ~"calc(var(--indent) * 3 + 11px) 0", ~"calc(var(--indent) * 4 + 11px) 0", ~"calc(var(--indent) * 5 + 11px) 0", ~"calc(var(--indent) * 6 + 11px) 0", ~"calc(var(--indent) * 7 + 11px) 0";
   }
 
   &[data-depth="8"] {
-    background-image: linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160), linear-gradient(#ff4500, #ff4500), linear-gradient(#7b61ff, #7b61ff), linear-gradient(#7193ff, #7193ff), linear-gradient(#ff8717, #ff8717), linear-gradient(#46d160, #46d160);
-    background-position: ~"calc(var(--indent) * 1) 0", ~"calc(var(--indent) * 2) 0", ~"calc(var(--indent) * 3) 0", ~"calc(var(--indent) * 4) 0", ~"calc(var(--indent) * 5) 0", ~"calc(var(--indent) * 6) 0", ~"calc(var(--indent) * 7) 0", ~"calc(var(--indent) * 8) 0";
+    background-image: linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b), linear-gradient(@nested-thread-a, @nested-thread-a), linear-gradient(@nested-thread-b, @nested-thread-b);
+    background-position: ~"calc(var(--indent) * 1 + 11px) 0", ~"calc(var(--indent) * 2 + 11px) 0", ~"calc(var(--indent) * 3 + 11px) 0", ~"calc(var(--indent) * 4 + 11px) 0", ~"calc(var(--indent) * 5 + 11px) 0", ~"calc(var(--indent) * 6 + 11px) 0", ~"calc(var(--indent) * 7 + 11px) 0", ~"calc(var(--indent) * 8 + 11px) 0";
   }
 
   &[data-hidden="true"] {
@@ -169,35 +193,35 @@
 // so each depth's line is moved from the left edge to the right.
 [dir="rtl"] .NestedRepliesPost {
   &[data-depth="1"] {
-    background-position: ~"right calc(var(--indent) * 1) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top";
   }
 
   &[data-depth="2"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top";
   }
 
   &[data-depth="3"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top";
   }
 
   &[data-depth="4"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top";
   }
 
   &[data-depth="5"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top";
   }
 
   &[data-depth="6"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top", ~"right calc(var(--indent) * 6) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top", ~"right calc(var(--indent) * 6 + 11px) top";
   }
 
   &[data-depth="7"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top", ~"right calc(var(--indent) * 6) top", ~"right calc(var(--indent) * 7) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top", ~"right calc(var(--indent) * 6 + 11px) top", ~"right calc(var(--indent) * 7 + 11px) top";
   }
 
   &[data-depth="8"] {
-    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top", ~"right calc(var(--indent) * 6) top", ~"right calc(var(--indent) * 7) top", ~"right calc(var(--indent) * 8) top";
+    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top", ~"right calc(var(--indent) * 6 + 11px) top", ~"right calc(var(--indent) * 7 + 11px) top", ~"right calc(var(--indent) * 8 + 11px) top";
   }
 }
 
@@ -338,6 +362,10 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  // The button sits at the top of its replies' guide, so centre it on the
+  // child-depth line (one indent in), not on the post's own depth. Transform
+  // keeps it out of layout, so the rest of the action bar stays put.
+  transform: ~"translateX(calc(var(--indent) - 23px))";
 
   .icon {
     font-size: 10px;
@@ -347,6 +375,10 @@
   &:focus {
     border-color: rgba(0, 0, 0, 0.45);
   }
+}
+
+[dir="rtl"] .NestedRepliesCollapseToggle {
+  transform: ~"translateX(calc(23px - var(--indent)))";
 }
 
 // "+ N more replies" line shown under a folded comment.
@@ -371,6 +403,91 @@
   &:focus {
     background: rgba(77, 105, 142, 0.18);
     text-decoration: none;
+  }
+}
+
+// "Show more replies" control for a folded sibling group. The component sets a
+// negative margin-inline-start when it is anchored deeper than the replies it
+// reveals, so the + badge sits on the hidden replies' guide line (the badge is
+// 16px wide, and the margin carries an extra 29px so the badge's centre lands
+// on the line rather than its inner edge).
+.NestedRepliesShowMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  // Flush with the fold zone's top (the thread guide line ends at the same
+  // height, capped by this control) while the footer's fill below finishes the
+  // group.
+  margin-top: 0;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 4px;
+  // Opaque so the control masks the guide lines running behind it, ending the
+  // thread at its top edge. `!important` beats core's
+  // `.Button--link { background: transparent !important; }`.
+  background: #fff !important;
+  color: #4470e6;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+
+  &-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    border: 1px solid #edeff1;
+    border-radius: 8px;
+    background: #f6f7f8;
+    color: #878a8c;
+    font-size: 9px;
+    line-height: 1;
+  }
+
+  // Core sizes `.Post-footer .icon` at 14px with a 5px trailing margin for its
+  // inline "meta" icons; the control's icons have their own compact sizes and
+  // rely on the flex gap for spacing, so reset those core defaults.
+  &-toggle .icon {
+    display: block;
+    font-size: 9px;
+    line-height: 1;
+    margin-right: 0;
+  }
+
+  &-label {
+    color: #4470e6;
+  }
+
+  &-icon {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+
+    .icon {
+      color: #4470e6;
+      font-size: 11px;
+      line-height: 1;
+      margin-right: 0;
+    }
+  }
+
+  &:hover,
+  &:focus {
+    background: #f6f7f8 !important;
+    color: #2a54c4;
+    text-decoration: none;
+  }
+
+  &:hover &-label,
+  &:focus &-label,
+  &:hover &-icon .icon,
+  &:focus &-icon .icon {
+    color: #2a54c4;
   }
 }
 
