@@ -2,7 +2,9 @@
 
 use Flarum\Api\Serializer\PostSerializer;
 use Flarum\Extend;
+use Flarum\Post\Event\Saving;
 use Mtareq\NestedReplies\Api\VotePostController;
+use Mtareq\NestedReplies\Listener\StoreReplyParent;
 use Mtareq\NestedReplies\PostVote;
 
 return [
@@ -31,6 +33,9 @@ return [
 
     (new Extend\Routes('api'))
         ->post('/mtareq-nested-replies/posts/{id}/vote', 'mtareq-nested-replies.vote', VotePostController::class),
+
+    (new Extend\Event())
+        ->listen(Saving::class, StoreReplyParent::class),
 
     (new Extend\ApiSerializer(PostSerializer::class))
         ->attribute('votes', function ($serializer, $post) {
