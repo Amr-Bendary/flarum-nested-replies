@@ -64,6 +64,7 @@
 .NestedRepliesPost {
   --depth: 0;
   --indent: 24px;
+  --gutter: 24px;
 
   // Every nested reply paints one guide line per ancestor level. Stream items
   // stack with no vertical gaps, so the lines join into a continuous thread the
@@ -73,11 +74,11 @@
 
   > .NestedRepliesPost-container {
     margin-inline-start: ~"calc(var(--depth) * var(--indent))";
-    // A 24px guide gutter on the inline-start holds the thread line and the
+    // A guide gutter on the inline-start holds the thread line and the
     // fold/unfold button, both centred on it, so the line runs through the
     // middle of the button and the text starts clear of them.
     padding-block: 4px 14px;
-    padding-inline: 24px 0;
+    padding-inline: var(--gutter) 0;
     border-radius: 4px;
     background: transparent;
     transition: background 0.15s ease;
@@ -126,12 +127,12 @@
 
     .Post-footer {
       background: #fff;
-      // Stretch the fill from the shallowest thread column (one indent in, minus
+      // Stretch the fill from the shallowest thread column (gutter in, minus
       // the line's own 2px) to the inline-end, so no guide line pokes out below
       // the control; an equal inline-start padding returns the content to its
       // normal spot.
-      margin-inline-start: ~"calc(-15px - (var(--depth) - 1) * var(--indent))";
-      padding-inline-start: ~"calc(15px + (var(--depth) - 1) * var(--indent))";
+      margin-inline-start: ~"calc((var(--gutter) - 9px) * -1 - (var(--depth) - 1) * var(--indent))";
+      padding-inline-start: ~"calc((var(--gutter) - 9px) + (var(--depth) - 1) * var(--indent))";
     }
   }
 
@@ -365,7 +366,7 @@
   // The button sits at the top of its replies' guide, so centre it on the
   // child-depth line (one indent in), not on the post's own depth. Transform
   // keeps it out of layout, so the rest of the action bar stays put.
-  transform: ~"translateX(calc(var(--indent) - 23px))";
+  transform: ~"translateX(calc(var(--indent) - var(--gutter) + 1px))";
 
   .icon {
     font-size: 10px;
@@ -378,7 +379,7 @@
 }
 
 [dir="rtl"] .NestedRepliesCollapseToggle {
-  transform: ~"translateX(calc(23px - var(--indent)))";
+  transform: ~"translateX(calc(var(--gutter) - var(--indent) - 1px))";
 }
 
 // "+ N more replies" line shown under a folded comment.
@@ -407,10 +408,9 @@
 }
 
 // "Show more replies" control for a folded sibling group. The component sets a
-// negative margin-inline-start when it is anchored deeper than the replies it
-// reveals, so the + badge sits on the hidden replies' guide line (the badge is
-// 16px wide, and the margin carries an extra 29px so the badge's centre lands
-// on the line rather than its inner edge).
+// gutter-aware negative margin-inline-start so the + badge (16px wide) lands
+// centred on the hidden replies' guide line at any --gutter value (equal to a
+// -29px offset at the desktop 24px gutter).
 .NestedRepliesShowMore {
   display: inline-flex;
   align-items: center;
@@ -562,16 +562,102 @@ a.NestedRepliesReplyTag {
 }
 
 @media @phone {
+  // Core's page container keeps 15px side padding on phones. Tighten it on
+  // discussion pages so the thread cards get the maximum reading width, while
+  // keeping enough air that the layout never feels cramped.
+  .DiscussionPage .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .NestedRepliesThreadCard,
+  .NestedRepliesReplyCard {
+    padding-inline: 8px;
+    border-radius: 6px;
+  }
+
+  .NestedRepliesThreadCard {
+    padding-block: 12px 14px;
+    margin-bottom: 10px;
+  }
+
+  .NestedRepliesReplyCard {
+    padding-block: 6px 8px;
+    margin-bottom: 10px;
+  }
+
+  // Core bleeds stream items edge-to-edge on phones with negative margins and
+  // matching padding. Inside the cards that bleed breaks out of the card
+  // border and doubles the side spacing, so neutralise it here.
+  .NestedRepliesThreadCard .PostStream-item,
+  .NestedRepliesReplyCard > .PostStream-item {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .NestedRepliesReplyCard > .PostStream-item.is-top-level {
+    margin-top: 10px;
+    padding-top: 12px;
+
+    &:first-child {
+      margin-top: 0;
+      padding-top: 10px;
+    }
+  }
+
+  // First top-level reply sits right under the sort header, so no divider.
+  .NestedRepliesReplyCard > .NestedRepliesReplySort + .PostStream-item.is-top-level {
+    margin-top: 0;
+    padding-top: 10px;
+  }
+
   .NestedRepliesPost {
     --indent: 12px;
+    // The gutter holds the thread lines plus the breathing room between the
+    // deepest line and the text/avatar/action column. At 14px the text sat
+    // only 1px off the line (desktop gives 11px); 20px restores a ~7px gap.
+    // All line-relative positioning (toggle, Show More, footer fill) derives
+    // from --gutter, so they track this automatically.
+    --gutter: 20px;
+
+    > .NestedRepliesPost-container {
+      padding-block: 3px 8px;
+    }
+
+    // The folded-group footer fill must reach the container's bottom edge so
+    // no thread-line stubs poke out below the "Show more" control. This has to
+    // re-assert the base `padding-bottom: 0` because the rule above ties with
+    // it on specificity and comes later in source order.
+    &--hasMore > .NestedRepliesPost-container {
+      padding-bottom: 0;
+    }
+
+    .Post-header {
+      margin-bottom: 8px;
+    }
+
+    .PostUser .PostUser-avatar {
+      --size: 24px;
+    }
+
+    .Post-footer {
+      margin: 8px 0 0;
+    }
 
     .Post-actions {
+      margin: 8px 0 0;
+
       > ul {
-        gap: 6px;
+        gap: 4px;
       }
 
-      .Button {
-        padding: 3px 8px;
+      // Compact icon-only chips free up reading width on narrow screens; leave
+      // dropdown menu labels alone. The fold toggle is excluded: it has its
+      // own exact sizing so the thread line stays centred on it.
+      .Button:not(.NestedRepliesCollapseToggle) {
+        min-height: 24px;
+        padding: 2px 8px;
+        font-size: 11px;
       }
 
       // Icon-only chips on small screens; leave dropdown menu labels alone.
@@ -580,5 +666,58 @@ a.NestedRepliesReplyTag {
         display: none;
       }
     }
+  }
+
+  // Compact vote rail to match the smaller action chips.
+  .NestedRepliesVoteRail {
+    min-height: 24px;
+    padding: 2px 8px;
+    gap: 4px;
+  }
+
+  .NestedRepliesVoteScore {
+    font-size: 11px;
+  }
+
+  // Smaller fold button so it clears the neighbouring thread lines: at the
+  // mobile indent the 22px desktop button is wider than the line spacing, so
+  // adjacent lines would show through it. The shifted centring transform keeps
+  // the thread line running through this button's middle, and the opaque fill
+  // masks the line behind it, exactly like the desktop button does.
+  // Triple-class specificity beats both core `.Button.Button--icon` sizing and
+  // our own base `.Post-actions .Button` pill sizing, so the small toggle size
+  // below truly applies.
+  .NestedRepliesPost .Post-actions .NestedRepliesCollapseToggle {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    padding: 0;
+    // `!important` beats our own base `.Post-actions .Button` background, so
+    // the opaque fill truly masks neighbouring thread lines behind it.
+    background: #fff !important;
+    transform: ~"translateX(calc(var(--indent) - var(--gutter) + 4px))";
+
+    .icon {
+      font-size: 8px;
+    }
+  }
+
+  [dir="rtl"] .NestedRepliesPost .Post-actions .NestedRepliesCollapseToggle {
+    transform: ~"translateX(calc(var(--gutter) - var(--indent) - 4px))";
+  }
+
+  .NestedRepliesMoreReplies {
+    margin-top: 6px;
+  }
+
+  // Compact reply tag so header (avatar + name + tag + time) fits one row.
+  a.NestedRepliesReplyTag {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+
+  .NestedRepliesReplySort {
+    padding: 8px 0 10px;
   }
 }

@@ -16,9 +16,11 @@ export default class MoreReplies extends Component {
         title: app.translator.trans('mtareq-nested-replies.forum.more_replies', { count }),
         // Move the control to the hidden replies' depth and centre its + badge
         // on that depth's guide line: the badge sits 16px inside the button, so
-        // the margin carries an extra 29px to put the badge's centre on the
-        // line. The guide line itself ends at the control's top edge.
-        style: `margin-inline-start: calc(${indent || 0} * var(--indent) - 29px)`,
+        // the margin carries an extra offset to put the badge's centre on the
+        // line. The offset is derived from --gutter so it stays centred when
+        // the gutter changes on mobile: it equals -29px at the desktop 24px
+        // gutter. The guide line itself ends at the control's top edge.
+        style: `margin-inline-start: calc(${indent || 0} * var(--indent) - var(--gutter) - 5px)`,
         onclick: this.attrs.onclick,
       },
       [
