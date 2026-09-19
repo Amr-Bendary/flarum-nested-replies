@@ -49,7 +49,7 @@ describe('createVoteAdapter', () => {
     expect(app.request).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'POST',
-        url: 'http://localhost/api/itqan-nested-replies/posts/4/vote',
+        url: 'http://localhost/api/mtareq-nested-replies/posts/4/vote',
         body: { direction: 'up' },
       })
     );

@@ -8,10 +8,10 @@ export default class CollapseToggle extends Component {
     const key = collapsed ? 'expand' : 'collapse';
 
     return m(
-      'button.RedditCollapseToggle.Button.Button--icon',
+      'button.NestedRepliesCollapseToggle.Button.Button--icon',
       {
         type: 'button',
-        title: app.translator.trans(`itqan-nested-replies.forum.${key}`),
+        title: app.translator.trans(`mtareq-nested-replies.forum.${key}`),
         onclick: this.attrs.onclick,
       },
       icon(collapsed ? 'fas fa-plus' : 'fas fa-minus')

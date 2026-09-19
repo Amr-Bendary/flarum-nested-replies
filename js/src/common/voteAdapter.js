@@ -21,7 +21,7 @@ export function createVoteAdapter(app) {
       if (!post) return Promise.resolve();
 
       const value = direction === 'up' || direction === 'down' ? direction : null;
-      const url = `${app.forum.attribute('apiUrl')}/itqan-nested-replies/posts/${post.id()}/vote`;
+      const url = `${app.forum.attribute('apiUrl')}/mtareq-nested-replies/posts/${post.id()}/vote`;
 
       return app
         .request({

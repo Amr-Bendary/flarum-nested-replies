@@ -1,4 +1,4 @@
-// Reddit-style nested reply thread theme.
+// Nested reply thread theme.
 
 // Core draws a 1px separator between every stream item. The reply card below
 // draws its own dividers between top-level replies only, so remove the core
@@ -8,8 +8,8 @@
 }
 
 // Card shared by the original post and the reply tree.
-.RedditThreadCard,
-.RedditReplyCard {
+.NestedRepliesThreadCard,
+.NestedRepliesReplyCard {
   background: #fff;
   border: 1px solid #edeff1;
   border-radius: 8px;
@@ -26,18 +26,18 @@
   }
 }
 
-.RedditThreadCard {
+.NestedRepliesThreadCard {
   padding-bottom: 20px;
 }
 
-.RedditReplyCard {
+.NestedRepliesReplyCard {
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
 // Divider between top-level replies only. Nested replies are separated by
 // their indentation thread line instead, so they never get a divider.
-.RedditReplyCard > .PostStream-item.is-top-level {
+.NestedRepliesReplyCard > .PostStream-item.is-top-level {
   border-top: 1px solid #edeff1;
   margin-top: 16px;
   padding-top: 16px;
@@ -50,13 +50,13 @@
 }
 
 // First top-level reply sits right under the sort header, so no divider.
-.RedditReplyCard > .RedditReplySort + .PostStream-item.is-top-level {
+.NestedRepliesReplyCard > .NestedRepliesReplySort + .PostStream-item.is-top-level {
   border-top: 0;
   margin-top: 0;
   padding-top: 12px;
 }
 
-.RedditPost {
+.NestedRepliesPost {
   --depth: 0;
   --indent: 24px;
 
@@ -66,12 +66,13 @@
   background-repeat: no-repeat;
   background-size: 2px 100%;
 
-  > .RedditPost-container {
-    margin-left: ~"calc(var(--depth) * var(--indent))";
+  > .NestedRepliesPost-container {
+    margin-inline-start: ~"calc(var(--depth) * var(--indent))";
     // No avatar gutter: the avatar is inlined in the header below, so the body
     // can use the full card width. The 8px keeps text clear of the guide line,
     // and the bottom padding separates the action bar from the next reply.
-    padding: 4px 0 14px 8px;
+    padding-block: 4px 14px;
+    padding-inline: 8px 0;
     border-radius: 4px;
     background: transparent;
     transition: background 0.15s ease;
@@ -85,7 +86,7 @@
     left: auto;
     top: auto;
     --size: 28px;
-    margin-right: 6px;
+    margin-inline-end: 6px;
     vertical-align: middle;
   }
 
@@ -94,10 +95,10 @@
   .PostUser-badges {
     float: none;
     position: static;
-    margin: 0 0 0 4px;
+    margin-inline: 4px 0;
     width: auto;
     display: inline-block;
-    text-align: left;
+    text-align: start;
     vertical-align: middle;
 
     .Badge {
@@ -106,7 +107,7 @@
     }
   }
 
-  &:hover > .RedditPost-container {
+  &:hover > .NestedRepliesPost-container {
     background: rgba(0, 0, 0, 0.025);
   }
 
@@ -154,7 +155,7 @@
     display: none;
   }
 
-  &[data-collapsed="true"] > .RedditPost-container {
+  &[data-collapsed="true"] > .NestedRepliesPost-container {
     .Post-body,
     .Post-content,
     .Post-footer {
@@ -163,9 +164,47 @@
   }
 }
 
+// Right-to-left locales. Flarum puts dir="rtl" on the root element; the
+// indentation, avatar and badge spacing above use logical properties, so they
+// mirror on their own. The thread guide lines are physical background images,
+// so each depth's line is moved from the left edge to the right.
+[dir="rtl"] .NestedRepliesPost {
+  &[data-depth="1"] {
+    background-position: ~"right calc(var(--indent) * 1) top";
+  }
+
+  &[data-depth="2"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top";
+  }
+
+  &[data-depth="3"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top";
+  }
+
+  &[data-depth="4"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top";
+  }
+
+  &[data-depth="5"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top";
+  }
+
+  &[data-depth="6"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top", ~"right calc(var(--indent) * 6) top";
+  }
+
+  &[data-depth="7"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top", ~"right calc(var(--indent) * 6) top", ~"right calc(var(--indent) * 7) top";
+  }
+
+  &[data-depth="8"] {
+    background-position: ~"right calc(var(--indent) * 1) top", ~"right calc(var(--indent) * 2) top", ~"right calc(var(--indent) * 3) top", ~"right calc(var(--indent) * 4) top", ~"right calc(var(--indent) * 5) top", ~"right calc(var(--indent) * 6) top", ~"right calc(var(--indent) * 7) top", ~"right calc(var(--indent) * 8) top";
+  }
+}
+
 // Always-visible, inline action bar: vote, fold, Like, Reply and controls.
-.RedditPost {
-  > .RedditPost-container {
+.NestedRepliesPost {
+  > .NestedRepliesPost-container {
     display: flex;
     flex-direction: column;
   }
@@ -242,7 +281,7 @@
   }
 }
 
-.RedditVoteRail {
+.NestedRepliesVoteRail {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -259,7 +298,7 @@
   }
 }
 
-.RedditVoteButton {
+.NestedRepliesVoteButton {
   padding: 0;
   background: none;
   border: none;
@@ -280,7 +319,7 @@
   }
 }
 
-.RedditVoteScore {
+.NestedRepliesVoteScore {
   min-width: 10px;
   text-align: center;
   font-size: 12px;
@@ -288,7 +327,7 @@
   color: #1c1c1c;
 }
 
-.RedditCollapseToggle {
+.NestedRepliesCollapseToggle {
   opacity: 1;
 
   &:hover {
@@ -297,15 +336,15 @@
 }
 
 // Configurable colour for the Like action once the post is liked.
-.RedditPost .item-like.is-liked .Button,
-.RedditPost .item-like.is-liked .Button:hover,
-.RedditPost .item-like.is-liked .Button:focus {
-  color: var(--reddit-like-color, #ff4500);
+.NestedRepliesPost .item-like.is-liked .Button,
+.NestedRepliesPost .item-like.is-liked .Button:hover,
+.NestedRepliesPost .item-like.is-liked .Button:focus {
+  color: var(--nested-replies-like-color, #ff4500);
 }
 
 // "Reply to X" tag shown in the post header, replacing the inline mention.
 // `a.` keeps it above core's `.Post-header a` colour rule.
-a.RedditReplyTag {
+a.NestedRepliesReplyTag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -326,22 +365,22 @@ a.RedditReplyTag {
 }
 
 // The inline post mention is hidden now that its header tag is shown.
-.RedditReplyTag-source {
+.NestedRepliesReplyTag-source {
   display: none;
 }
 
 // Optional: hide core mentions' "You replied to this." summary.
-.RedditHideMentionedBy .Post-mentionedBy {
+.NestedRepliesHideMentionedBy .Post-mentionedBy {
   display: none;
 }
 
 // flarum-likes' "You liked this." summary is hidden in the card layout.
-.RedditPost .Post-likedBy {
+.NestedRepliesPost .Post-likedBy {
   display: none;
 }
 
 // Reply card header: sort control.
-.RedditReplySort {
+.NestedRepliesReplySort {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -367,7 +406,7 @@ a.RedditReplyTag {
 }
 
 @media @phone {
-  .RedditPost {
+  .NestedRepliesPost {
     --indent: 12px;
 
     .Post-actions {

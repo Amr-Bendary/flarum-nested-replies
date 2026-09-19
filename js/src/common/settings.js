@@ -23,12 +23,12 @@ export function readSettings(app) {
   };
 
   return {
-    enabled: Boolean(read('redditRepliesEnabled', true)),
-    maxDepth: Number(read('redditRepliesMaxDepth', 5)) || 0,
-    showVotes: Boolean(read('redditRepliesShowVotes', true)),
-    showReplyTag: Boolean(read('redditRepliesShowReplyTag', true)),
-    showRepliedIndicator: Boolean(read('redditRepliesShowRepliedIndicator', true)),
-    likeColor: String(read('redditRepliesLikeColor', '#ff4500')),
-    startAtFirstPost: Boolean(read('redditRepliesStartAtFirstPost', true)),
+    enabled: Boolean(read('nestedRepliesEnabled', true)),
+    maxDepth: Number(read('nestedRepliesMaxDepth', 5)) || 0,
+    showVotes: Boolean(read('nestedRepliesShowVotes', true)),
+    showReplyTag: Boolean(read('nestedRepliesShowReplyTag', true)),
+    showRepliedIndicator: Boolean(read('nestedRepliesShowRepliedIndicator', true)),
+    likeColor: String(read('nestedRepliesLikeColor', '#ff4500')),
+    startAtFirstPost: Boolean(read('nestedRepliesStartAtFirstPost', true)),
   };
 }

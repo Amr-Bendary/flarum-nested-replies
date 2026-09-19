@@ -1,7 +1,7 @@
-itqan-nested-replies:
+mtareq-nested-replies:
   admin:
     settings:
-      enabled_label: Reddit-style nested replies
+      enabled_label: Enable nested replies
       max_depth_label: Maximum indent depth
       show_votes_label: Show vote rail
       show_reply_tag_label: Show "Reply to" tag

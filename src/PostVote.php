@@ -1,12 +1,12 @@
 <?php
 
-namespace Itqan\NestedReplies;
+namespace Mtareq\NestedReplies;
 
 use Flarum\Database\AbstractModel;
 
 class PostVote extends AbstractModel
 {
-    protected $table = 'itqan_nested_replies_votes';
+    protected $table = 'mtareq_nested_replies_votes';
 
     protected $fillable = ['post_id', 'user_id', 'value'];
 

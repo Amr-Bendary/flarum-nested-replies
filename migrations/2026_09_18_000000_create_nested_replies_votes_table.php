@@ -3,7 +3,7 @@
 use Flarum\Database\Migration;
 use Illuminate\Database\Schema\Blueprint;
 
-return Migration::createTable('itqan_nested_replies_votes', function (Blueprint $table) {
+return Migration::createTable('mtareq_nested_replies_votes', function (Blueprint $table) {
     $table->increments('id');
     $table->unsignedInteger('post_id');
     $table->unsignedInteger('user_id');

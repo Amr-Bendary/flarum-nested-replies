@@ -1,7 +1,7 @@
 {
-  "name": "itqan/flarum-nested-replies",
-  "description": "Restyle Flarum discussions as Reddit-style nested reply threads.",
-  "keywords": ["flarum", "theme", "reddit", "nested", "threads"],
+  "name": "mtareq/flarum-nested-replies",
+  "description": "Restyle Flarum discussions as nested reply threads with indentation, collapsible comments and voting.",
+  "keywords": ["flarum", "theme", "nested", "threads", "replies", "discussion"],
   "license": "MIT",
   "type": "flarum-extension",
   "require": {
@@ -9,7 +9,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Itqan\\NestedReplies\\": "src/"
+      "Mtareq\\NestedReplies\\": "src/"
     }
   },
   "extra": {

@@ -1,0 +1,22 @@
+mtareq-nested-replies:
+  admin:
+    settings:
+      enabled_label: تفعيل الردود المتداخلة
+      max_depth_label: أقصى عمق للإزاحة
+      show_votes_label: إظهار شريط التصويت
+      show_reply_tag_label: 'إظهار وسم "الرد على"'
+      show_replied_indicator_label: 'إظهار مؤشر "ردّ على هذا"'
+      like_color_label: لون الإعجاب (عند التفعيل)
+      start_at_first_post_label: بدء المناقشات من المشاركة الأولى
+  forum:
+    collapse: طيّ الردود
+    expand: توسيع الردود
+    upvote: تصويت إيجابي
+    downvote: تصويت سلبي
+    reply_to: "الرد على {username}"
+    sort_by: "ترتيب حسب:"
+    sort_oldest: الأقدم
+    sort_newest: الأحدث
+    sort_top: الأعلى تصويتًا
+    sort_replies: الأكثر ردودًا
+    sort_loading: جارٍ التحميل...

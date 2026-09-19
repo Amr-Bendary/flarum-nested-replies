@@ -12,7 +12,7 @@ import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId } from 
 import VoteRail from './components/VoteRail';
 import CollapseToggle from './components/CollapseToggle';
 
-app.initializers.add('itqan-nested-replies', () => {
+app.initializers.add('mtareq-nested-replies', () => {
   const settings = readSettings(app);
   if (!settings.enabled) return;
 
@@ -29,8 +29,8 @@ app.initializers.add('itqan-nested-replies', () => {
   let currentDiscussion = null;
 
   if (typeof document !== 'undefined' && document.documentElement) {
-    document.documentElement.classList.toggle('RedditHideMentionedBy', !settings.showRepliedIndicator);
-    document.documentElement.style.setProperty('--reddit-like-color', settings.likeColor || '#ff4500');
+    document.documentElement.classList.toggle('NestedRepliesHideMentionedBy', !settings.showRepliedIndicator);
+    document.documentElement.style.setProperty('--nested-replies-like-color', settings.likeColor || '#ff4500');
   }
 
   // Flarum's discussion-list links resume at the first unread post. Optionally
@@ -70,13 +70,13 @@ app.initializers.add('itqan-nested-replies', () => {
     const hidden = isHidden(post, collapsed, lookup);
     const op = isOriginalPost(post);
 
-    element.classList.add('RedditPost');
-    element.classList.toggle('RedditPost--op', op);
+    element.classList.add('NestedRepliesPost');
+    element.classList.toggle('NestedRepliesPost--op', op);
 
     // Flarum 2.x ships a `.Post-container` wrapper; 1.x has an unnamed div.
     // Tag it ourselves so the LESS works on both.
     const container = element.firstElementChild;
-    if (container) container.classList.add('RedditPost-container');
+    if (container) container.classList.add('NestedRepliesPost-container');
 
     element.dataset.depth = String(depth);
     element.style.setProperty('--depth', String(depth));
@@ -103,7 +103,7 @@ app.initializers.add('itqan-nested-replies', () => {
       const body = element.querySelector('.Post-body') || element.querySelector('.Post-content');
       if (body) {
         const mention = body.querySelector('a.PostMention');
-        if (mention) mention.classList.add('RedditReplyTag-source');
+        if (mention) mention.classList.add('NestedRepliesReplyTag-source');
       }
     }
   }
@@ -224,7 +224,7 @@ app.initializers.add('itqan-nested-replies', () => {
   }
 
   function replySortVNode() {
-    const trans = (key) => app.translator.trans(`itqan-nested-replies.forum.${key}`);
+    const trans = (key) => app.translator.trans(`mtareq-nested-replies.forum.${key}`);
     const options = [
       ['oldest', trans('sort_oldest')],
       ['newest', trans('sort_newest')],
@@ -232,10 +232,10 @@ app.initializers.add('itqan-nested-replies', () => {
       ['replies', trans('sort_replies')],
     ];
 
-    return m('div.RedditReplySort', { key: 'redditReplySort' }, [
-      m('span.RedditReplySort-label', trans('sort_by')),
+    return m('div.NestedRepliesReplySort', { key: 'nestedRepliesReplySort' }, [
+      m('span.NestedRepliesReplySort-label', trans('sort_by')),
       m(
-        'select.RedditReplySort-select',
+        'select.NestedRepliesReplySort-select',
         {
           value: sortMode,
           disabled: loadingAll,
@@ -243,7 +243,7 @@ app.initializers.add('itqan-nested-replies', () => {
         },
         options.map(([value, label]) => m('option', { value, selected: sortMode === value }, label))
       ),
-      loadingAll ? m('span.RedditReplySort-loading', trans('sort_loading')) : null,
+      loadingAll ? m('span.NestedRepliesReplySort-loading', trans('sort_loading')) : null,
     ]);
   }
 
@@ -270,7 +270,7 @@ app.initializers.add('itqan-nested-replies', () => {
     }
   }
 
-  // Flarum's post stream is a flat list. Reddit's layout wants the original
+  // Flarum's post stream is a flat list. A nested-reply layout wants the original
   // post in its own card and every reply inside a second card, so regroup the
   // rendered vnodes without touching core.
   override(PostStream.prototype, 'view', function (original) {
@@ -291,9 +291,9 @@ app.initializers.add('itqan-nested-replies', () => {
       const replyItems = ordered.map((post) => makePostItem(post, indexOf.get(String(post.id())) || 0)).filter(Boolean);
 
       const grouped = [];
-      if (opItem) grouped.push(m('div.RedditThreadCard', { key: 'redditThreadCard' }, opItem));
+      if (opItem) grouped.push(m('div.NestedRepliesThreadCard', { key: 'nestedRepliesThreadCard' }, opItem));
 
-      grouped.push(m('div.RedditReplyCard', { key: 'redditReplyCard' }, [replySortVNode(), ...replyItems]));
+      grouped.push(m('div.NestedRepliesReplyCard', { key: 'nestedRepliesReplyCard' }, [replySortVNode(), ...replyItems]));
 
       // The native stream isn't at its end when only the first page is loaded,
       // but the sorted view shows the whole discussion, so allow replying.
@@ -323,10 +323,10 @@ app.initializers.add('itqan-nested-replies', () => {
     const replies = rest.filter(isPostItem);
     const tail = rest.filter((child) => !isPostItem(child));
 
-    const grouped = [...before, m('div.RedditThreadCard', { key: 'redditThreadCard' }, op)];
+    const grouped = [...before, m('div.NestedRepliesThreadCard', { key: 'nestedRepliesThreadCard' }, op)];
 
     if (replies.length) {
-      grouped.push(m('div.RedditReplyCard', { key: 'redditReplyCard' }, [replySortVNode(), ...replies]));
+      grouped.push(m('div.NestedRepliesReplyCard', { key: 'nestedRepliesReplyCard' }, [replySortVNode(), ...replies]));
     }
 
     grouped.push(...tail);
@@ -390,10 +390,10 @@ app.initializers.add('itqan-nested-replies', () => {
     if (!target || !target.name) return;
 
     items.add(
-      'redditReplyTag',
-      m('a.RedditReplyTag', { href: target.href || '#', title: target.name }, [
+      'nestedRepliesReplyTag',
+      m('a.NestedRepliesReplyTag', { href: target.href || '#', title: target.name }, [
         icon('fas fa-reply'),
-        m('span.RedditReplyTag-label', app.translator.trans('itqan-nested-replies.forum.reply_to', { username: target.name })),
+        m('span.NestedRepliesReplyTag-label', app.translator.trans('mtareq-nested-replies.forum.reply_to', { username: target.name })),
       ]),
       95
     );
@@ -405,11 +405,11 @@ app.initializers.add('itqan-nested-replies', () => {
     if (!post) return;
 
     if (settings.showVotes) {
-      items.add('redditVotes', m(VoteRail, { post, adapter: votes }), 10);
+      items.add('nestedRepliesVotes', m(VoteRail, { post, adapter: votes }), 10);
     }
 
     items.add(
-      'redditCollapse',
+      'nestedRepliesCollapse',
       m(CollapseToggle, {
         collapsed: collapsed.has(String(post.id())),
         onclick: () => toggleCollapse(post),

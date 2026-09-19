@@ -11,12 +11,12 @@ export default class VoteRail extends Component {
 
     const button = (direction, iconName, key) =>
       m(
-        `button.RedditVoteButton.RedditVoteButton--${direction}`,
+        `button.NestedRepliesVoteButton.NestedRepliesVoteButton--${direction}`,
         {
           type: 'button',
           className: current === direction ? 'is-active' : '',
           disabled: !available,
-          title: app.translator.trans(`itqan-nested-replies.forum.${key}`),
+          title: app.translator.trans(`mtareq-nested-replies.forum.${key}`),
           onclick: () => {
             if (!available) return;
             adapter.vote(post, current === direction ? null : direction);
@@ -25,9 +25,9 @@ export default class VoteRail extends Component {
         icon(iconName)
       );
 
-    return m('div.RedditVoteRail', { className: available ? '' : 'is-disabled' }, [
+    return m('div.NestedRepliesVoteRail', { className: available ? '' : 'is-disabled' }, [
       button('up', 'fas fa-arrow-up', 'upvote'),
-      m('span.RedditVoteScore', score == null ? '' : String(score)),
+      m('span.NestedRepliesVoteScore', score == null ? '' : String(score)),
       button('down', 'fas fa-arrow-down', 'downvote'),
     ]);
   }

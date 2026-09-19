@@ -1,13 +1,13 @@
 <?php
 
-namespace Itqan\NestedReplies\Api;
+namespace Mtareq\NestedReplies\Api;
 
 use Flarum\Api\Controller\AbstractShowController;
 use Flarum\Api\Serializer\PostSerializer;
 use Flarum\Http\RequestUtil;
 use Flarum\Post\Post;
 use Illuminate\Support\Arr;
-use Itqan\NestedReplies\PostVote;
+use Mtareq\NestedReplies\PostVote;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 

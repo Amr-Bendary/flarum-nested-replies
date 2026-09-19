@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@itqan/flarum-nested-replies",
+  "name": "@mtareq/flarum-nested-replies",
   "dependencies": {
     "@flarum/prettier-config": "^1.0.0",
     "flarum-webpack-config": "^2.0.0",

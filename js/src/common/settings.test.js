@@ -9,13 +9,13 @@ describe('readSettings', () => {
   it('uses the serialized forum attributes', () => {
     const settings = readSettings(
       fakeApp({
-        redditRepliesEnabled: false,
-        redditRepliesMaxDepth: 3,
-        redditRepliesShowVotes: false,
-        redditRepliesShowReplyTag: false,
-        redditRepliesShowRepliedIndicator: false,
-        redditRepliesLikeColor: '#00ff00',
-        redditRepliesStartAtFirstPost: false,
+        nestedRepliesEnabled: false,
+        nestedRepliesMaxDepth: 3,
+        nestedRepliesShowVotes: false,
+        nestedRepliesShowReplyTag: false,
+        nestedRepliesShowRepliedIndicator: false,
+        nestedRepliesLikeColor: '#00ff00',
+        nestedRepliesStartAtFirstPost: false,
       })
     );
     expect(settings).toEqual({
@@ -60,7 +60,7 @@ describe('readSettings', () => {
           {
             type: 'forums',
             id: '1',
-            attributes: { redditRepliesShowReplyTag: false, redditRepliesShowRepliedIndicator: false, redditRepliesMaxDepth: 2 },
+            attributes: { nestedRepliesShowReplyTag: false, nestedRepliesShowRepliedIndicator: false, nestedRepliesMaxDepth: 2 },
           },
         ],
       },

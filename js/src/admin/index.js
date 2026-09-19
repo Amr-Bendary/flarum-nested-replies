@@ -1,41 +1,41 @@
 import app from 'flarum/admin/app';
 
-app.initializers.add('itqan-nested-replies', () => {
+app.initializers.add('mtareq-nested-replies', () => {
   app.extensionData
-    .for('itqan-nested-replies')
+    .for('mtareq-nested-replies')
     .registerSetting({
-      setting: 'itqan-nested-replies.enabled',
+      setting: 'mtareq-nested-replies.enabled',
       type: 'boolean',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.enabled_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.enabled_label'),
     })
     .registerSetting({
-      setting: 'itqan-nested-replies.max_depth',
+      setting: 'mtareq-nested-replies.max_depth',
       type: 'number',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.max_depth_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.max_depth_label'),
     })
     .registerSetting({
-      setting: 'itqan-nested-replies.show_votes',
+      setting: 'mtareq-nested-replies.show_votes',
       type: 'boolean',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.show_votes_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.show_votes_label'),
     })
     .registerSetting({
-      setting: 'itqan-nested-replies.show_reply_tag',
+      setting: 'mtareq-nested-replies.show_reply_tag',
       type: 'boolean',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.show_reply_tag_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.show_reply_tag_label'),
     })
     .registerSetting({
-      setting: 'itqan-nested-replies.show_replied_indicator',
+      setting: 'mtareq-nested-replies.show_replied_indicator',
       type: 'boolean',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.show_replied_indicator_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.show_replied_indicator_label'),
     })
     .registerSetting({
-      setting: 'itqan-nested-replies.like_color',
+      setting: 'mtareq-nested-replies.like_color',
       type: 'color',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.like_color_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.like_color_label'),
     })
     .registerSetting({
-      setting: 'itqan-nested-replies.start_at_first_post',
+      setting: 'mtareq-nested-replies.start_at_first_post',
       type: 'boolean',
-      label: app.translator.trans('itqan-nested-replies.admin.settings.start_at_first_post_label'),
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.start_at_first_post_label'),
     });
 });
