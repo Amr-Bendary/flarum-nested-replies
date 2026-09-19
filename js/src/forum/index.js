@@ -20,6 +20,8 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   const votes = createVoteAdapter(app);
   const collapsed = new Set();
+  const autoFolded = new Set();
+  const userToggled = new Set();
   const mounted = new Set();
   const lookup = (id) => app.store.getById('posts', String(id));
 
@@ -178,6 +180,23 @@ app.initializers.add('mtareq-nested-replies', () => {
     const hidden = isHidden(post, collapsed, lookup);
     const op = isOriginalPost(post);
 
+    // Fold a large subtree by default. The count is serialized by the backend
+    // so it is accurate even before every page of replies has loaded. Once the
+    // user toggles a post we never auto-fold it again.
+    let didAutoFold = false;
+
+    if (
+      !op &&
+      settings.autoFoldThreshold > 0 &&
+      !userToggled.has(id) &&
+      !autoFolded.has(id) &&
+      Number(post.attribute ? post.attribute('nestedRepliesReplyCount') : 0) > settings.autoFoldThreshold
+    ) {
+      collapsed.add(id);
+      autoFolded.add(id);
+      didAutoFold = true;
+    }
+
     element.classList.add('NestedRepliesPost');
     element.classList.toggle('NestedRepliesPost--op', op);
 
@@ -219,6 +238,9 @@ app.initializers.add('mtareq-nested-replies', () => {
         }
       }
     }
+
+    // The action bar was rendered before we folded, so refresh it once.
+    if (didAutoFold) forceRedraw();
   }
 
   // Pull every page of the discussion from the API so sorting sees all posts.
@@ -387,7 +409,15 @@ app.initializers.add('mtareq-nested-replies', () => {
   // post in its own card and every reply inside a second card, so regroup the
   // rendered vnodes without touching core.
   override(PostStream.prototype, 'view', function (original) {
-    currentDiscussion = this.discussion;
+    const nextDiscussion = this.discussion;
+
+    if (nextDiscussion !== currentDiscussion) {
+      currentDiscussion = nextDiscussion;
+      collapsed.clear();
+      autoFolded.clear();
+      userToggled.clear();
+    }
+
     const vnode = original();
 
     if (sortMode !== 'oldest' && allPosts && allPosts.length) {
@@ -462,6 +492,9 @@ app.initializers.add('mtareq-nested-replies', () => {
   function toggleCollapse(post) {
     const id = String(post.id());
 
+    userToggled.add(id);
+    autoFolded.delete(id);
+
     if (collapsed.has(id)) collapsed.delete(id);
     else collapsed.add(id);
 
@@ -512,22 +545,51 @@ app.initializers.add('mtareq-nested-replies', () => {
     );
   });
 
-  // Add the controls to the post action bar (next to Reply / Like).
-  extend(Post.prototype, 'actionItems', function (items) {
+  // Reddit-style controls: a circular fold/unfold button on every comment, and
+  // an "N more replies" line underneath a folded comment.
+  // CommentPost defines its own actionItems() and does not call the base
+  // Post.actionItems(), so this must target CommentPost.
+  extend(CommentPost.prototype, 'actionItems', function (items) {
     const post = this.attrs.post;
     if (!post) return;
+
+    if (!isOriginalPost(post)) {
+      items.add(
+        'nestedRepliesCollapse',
+        m(CollapseToggle, {
+          collapsed: collapsed.has(String(post.id())),
+          onclick: () => toggleCollapse(post),
+        }),
+        11
+      );
+    }
 
     if (settings.showVotes) {
       items.add('nestedRepliesVotes', m(VoteRail, { post, adapter: votes }), 10);
     }
+  });
+
+  extend(CommentPost.prototype, 'footerItems', function (items) {
+    const post = this.attrs.post;
+    if (!post) return;
+
+    const id = String(post.id());
+    if (!collapsed.has(id)) return;
+
+    const count = Number(post.attribute ? post.attribute('nestedRepliesReplyCount') : 0);
+    if (count <= 0) return;
 
     items.add(
-      'nestedRepliesCollapse',
-      m(CollapseToggle, {
-        collapsed: collapsed.has(String(post.id())),
-        onclick: () => toggleCollapse(post),
-      }),
-      9
+      'nestedRepliesMoreReplies',
+      m(
+        Button,
+        {
+          className: 'Button Button--link NestedRepliesMoreReplies',
+          onclick: () => toggleCollapse(post),
+        },
+        [icon('fas fa-plus'), m('span', app.translator.trans('mtareq-nested-replies.forum.more_replies', { count }))]
+      ),
+      10
     );
   });
 });

@@ -16,6 +16,7 @@ describe('readSettings', () => {
         nestedRepliesShowRepliedIndicator: false,
         nestedRepliesLikeColor: '#00ff00',
         nestedRepliesStartAtFirstPost: false,
+        nestedRepliesAutoFoldThreshold: 7,
       })
     );
     expect(settings).toEqual({
@@ -26,6 +27,7 @@ describe('readSettings', () => {
       showRepliedIndicator: false,
       likeColor: '#00ff00',
       startAtFirstPost: false,
+      autoFoldThreshold: 7,
     });
   });
 
@@ -38,6 +40,7 @@ describe('readSettings', () => {
       showRepliedIndicator: true,
       likeColor: '#ff4500',
       startAtFirstPost: true,
+      autoFoldThreshold: 5,
     });
   });
 
@@ -50,6 +53,7 @@ describe('readSettings', () => {
       showRepliedIndicator: true,
       likeColor: '#ff4500',
       startAtFirstPost: true,
+      autoFoldThreshold: 5,
     });
   });
 
@@ -73,6 +77,7 @@ describe('readSettings', () => {
       showRepliedIndicator: false,
       likeColor: '#ff4500',
       startAtFirstPost: true,
+      autoFoldThreshold: 5,
     });
   });
 });

@@ -24,13 +24,15 @@ $extenders = [
         ->default('mtareq-nested-replies.show_replied_indicator', '1')
         ->default('mtareq-nested-replies.like_color', '#ff4500')
         ->default('mtareq-nested-replies.start_at_first_post', '1')
+        ->default('mtareq-nested-replies.auto_fold_threshold', '5')
         ->serializeToForum('nestedRepliesEnabled', 'mtareq-nested-replies.enabled', 'boolval')
         ->serializeToForum('nestedRepliesMaxDepth', 'mtareq-nested-replies.max_depth', 'intval')
         ->serializeToForum('nestedRepliesShowVotes', 'mtareq-nested-replies.show_votes', 'boolval')
         ->serializeToForum('nestedRepliesShowReplyTag', 'mtareq-nested-replies.show_reply_tag', 'boolval')
         ->serializeToForum('nestedRepliesShowRepliedIndicator', 'mtareq-nested-replies.show_replied_indicator', 'boolval')
         ->serializeToForum('nestedRepliesLikeColor', 'mtareq-nested-replies.like_color')
-        ->serializeToForum('nestedRepliesStartAtFirstPost', 'mtareq-nested-replies.start_at_first_post', 'boolval'),
+        ->serializeToForum('nestedRepliesStartAtFirstPost', 'mtareq-nested-replies.start_at_first_post', 'boolval')
+        ->serializeToForum('nestedRepliesAutoFoldThreshold', 'mtareq-nested-replies.auto_fold_threshold', 'intval'),
 
     (new Extend\Routes('api'))
         ->post('/mtareq-nested-replies/posts/{id}/vote', 'mtareq-nested-replies.vote', VotePostController::class),
@@ -79,6 +81,11 @@ if (class_exists(\Flarum\Api\Resource\PostResource::class)) {
                     ->set(function ($post, $value, $context) {
                         // Persistence is owned by the Saving listener.
                     }),
+
+                \Flarum\Api\Schema\Integer::make('nestedRepliesReplyCount')
+                    ->get(function ($post) {
+                        return PostReply::subtreeCount($post->discussion_id, $post->id);
+                    }),
             ];
         });
 } else {
@@ -109,6 +116,9 @@ if (class_exists(\Flarum\Api\Resource\PostResource::class)) {
             $link = PostReply::query()->where('post_id', $post->id)->first();
 
             return $link ? (int) $link->parent_post_id : null;
+        })
+        ->attribute('nestedRepliesReplyCount', function ($serializer, $post) {
+            return PostReply::subtreeCount($post->discussion_id, $post->id);
         });
 }
 

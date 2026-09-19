@@ -30,5 +30,6 @@ export function readSettings(app) {
     showRepliedIndicator: Boolean(read('nestedRepliesShowRepliedIndicator', true)),
     likeColor: String(read('nestedRepliesLikeColor', '#ff4500')),
     startAtFirstPost: Boolean(read('nestedRepliesStartAtFirstPost', true)),
+    autoFoldThreshold: Number(read('nestedRepliesAutoFoldThreshold', 5)) || 0,
   };
 }

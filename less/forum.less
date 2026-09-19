@@ -157,8 +157,7 @@
 
   &[data-collapsed="true"] > .NestedRepliesPost-container {
     .Post-body,
-    .Post-content,
-    .Post-footer {
+    .Post-content {
       display: none;
     }
   }
@@ -214,7 +213,7 @@
   .Post-body,
   .Post-content { order: 1; }
   .Post-footer {
-    order: 2;
+    order: 4;
     display: block;
     height: auto;
     margin: 8px 0 0;
@@ -327,11 +326,51 @@
   color: #1c1c1c;
 }
 
+// Reddit-style circular fold/unfold button on a comment.
 .NestedRepliesCollapseToggle {
-  opacity: 1;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 
-  &:hover {
-    opacity: 1;
+  .icon {
+    font-size: 10px;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+// "+ N more replies" line shown under a folded comment.
+.NestedRepliesMoreReplies {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: rgba(77, 105, 142, 0.1);
+  color: #1c1c1e;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+
+  .icon {
+    font-size: 10px;
+  }
+
+  &:hover,
+  &:focus {
+    background: rgba(77, 105, 142, 0.18);
+    text-decoration: none;
   }
 }
 
