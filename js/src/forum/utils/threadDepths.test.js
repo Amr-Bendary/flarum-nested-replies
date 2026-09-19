@@ -8,7 +8,8 @@ function build(pairs) {
     return {
       id: () => String(id),
       number: () => Number(id),
-      mentionsPosts: () => (parentId == null ? [] : [posts[parentId]]),
+      attribute: (name) => (name === 'replyToPostId' ? parentId : undefined),
+      user: () => null,
     };
   }
 
@@ -20,70 +21,42 @@ function build(pairs) {
 }
 
 describe('getParentId', () => {
-  it('reads the parent id from the first post mention', () => {
-    const post = {
-      id: () => '5',
-      mentionsPosts: () => [{ id: () => '4' }, { id: () => '3' }],
-    };
-    expect(getParentId(post)).toBe('4');
+  it('reads the stored replyToPostId attribute', () => {
+    expect(getParentId({ id: () => '5', attribute: () => 4 })).toBe('4');
   });
 
-  it('returns null without mentions', () => {
-    expect(getParentId({ id: () => '1', mentionsPosts: () => [] })).toBeNull();
+  it('returns null without a stored parent', () => {
+    expect(getParentId({ id: () => '1', attribute: () => null })).toBeNull();
+    expect(getParentId({ id: () => '1', attribute: () => undefined })).toBeNull();
+    expect(getParentId({ id: () => '1', attribute: () => '' })).toBeNull();
     expect(getParentId({ id: () => '1' })).toBeNull();
+    expect(getParentId(null)).toBeNull();
   });
 
-  it('falls back to the rendered mention in contentHtml (Flarum 1.x)', () => {
+  it('ignores mention data entirely', () => {
     const post = {
       id: () => '7',
-      contentHtml: () => '<p>Reply to <a href="/d/2/1" class="PostMention" data-id="4">admin</a></p>',
-    };
-    expect(getParentId(post)).toBe('4');
-  });
-
-  it('handles reversed attribute order in contentHtml', () => {
-    const post = { id: () => '7', contentHtml: () => '<a data-id="9" class="PostMention">x</a>' };
-    expect(getParentId(post)).toBe('9');
-  });
-
-  it('falls back to the raw mention syntax', () => {
-    const post = { id: () => '7', content: () => 'hi @"admin"#p12' };
-    expect(getParentId(post)).toBe('12');
-  });
-
-  it('prefers mentionsPosts() when available', () => {
-    const post = {
-      id: () => '7',
+      attribute: () => null,
       mentionsPosts: () => [{ id: () => '4' }],
-      contentHtml: () => '<a class="PostMention" data-id="99">x</a>',
+      contentHtml: () => '<a class="PostMention" data-id="4">x</a>',
     };
-    expect(getParentId(post)).toBe('4');
+    expect(getParentId(post)).toBeNull();
   });
 });
 
 describe('getReplyTarget', () => {
-  it('extracts the name, href and id from the first post mention', () => {
-    const post = {
-      contentHtml: () => '<p>hi <a href="/d/2-x/1" class="PostMention" data-id="4">admin</a> there</p>',
-    };
-    expect(getReplyTarget(post)).toEqual({ id: '4', href: '/d/2-x/1', name: 'admin' });
+  it('resolves the parent post and its author from the store', () => {
+    const parent = { id: () => '4', user: () => ({ displayName: () => 'admin' }) };
+    const post = { id: () => '5', attribute: () => 4 };
+    expect(getReplyTarget(post, () => parent)).toEqual({ id: '4', name: 'admin', post: parent });
   });
 
-  it('handles reversed attribute order', () => {
-    const post = { contentHtml: () => '<a data-id="7" class="PostMention" href="/d/2-x/3">sara</a>' };
-    expect(getReplyTarget(post)).toEqual({ id: '7', href: '/d/2-x/3', name: 'sara' });
+  it('returns null when there is no stored parent', () => {
+    expect(getReplyTarget({ id: () => '5', attribute: () => null }, () => null)).toBeNull();
   });
 
-  it('returns null when there is no post mention', () => {
-    expect(getReplyTarget({ contentHtml: () => '<p>plain reply</p>' })).toBeNull();
-    expect(getReplyTarget({ contentHtml: () => '' })).toBeNull();
-    expect(getReplyTarget({})).toBeNull();
-    expect(getReplyTarget(null)).toBeNull();
-  });
-
-  it('ignores user mentions', () => {
-    const post = { contentHtml: () => '<a class="UserMention" data-id="9">bob</a>' };
-    expect(getReplyTarget(post)).toBeNull();
+  it('returns null when the parent is not loaded', () => {
+    expect(getReplyTarget({ id: () => '5', attribute: () => 4 }, () => null)).toBeNull();
   });
 });
 
@@ -93,10 +66,10 @@ describe('getDepth', () => {
     expect(getDepth(posts['1'], 10, lookup)).toBe(0);
   });
 
-  it('treats a reply that mentions the original post as top-level', () => {
+  it('treats a reply to the original post as top-level', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
+      ['2', 1],
     ]);
     expect(getDepth(posts['2'], 10, lookup)).toBe(0);
   });
@@ -104,8 +77,8 @@ describe('getDepth', () => {
   it('does not count the original post in the ancestor depth', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
-      ['3', '2'],
+      ['2', 1],
+      ['3', 2],
     ]);
     expect(getDepth(posts['3'], 10, lookup)).toBe(1);
   });
@@ -113,9 +86,9 @@ describe('getDepth', () => {
   it('counts nested ancestors below the first reply', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
-      ['3', '2'],
-      ['4', '3'],
+      ['2', 1],
+      ['3', 2],
+      ['4', 3],
     ]);
     expect(getDepth(posts['4'], 10, lookup)).toBe(2);
   });
@@ -123,25 +96,21 @@ describe('getDepth', () => {
   it('caps the depth at maxDepth', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
-      ['3', '2'],
-      ['4', '3'],
+      ['2', 1],
+      ['3', 2],
+      ['4', 3],
     ]);
     expect(getDepth(posts['4'], 1, lookup)).toBe(1);
   });
 
   it('treats an unloaded parent as a root', () => {
-    const orphan = {
-      id: () => '9',
-      mentionsPosts: () => [{ id: () => '404' }],
-    };
+    const orphan = { id: () => '9', attribute: () => 404 };
     expect(getDepth(orphan, 10, () => null)).toBe(0);
   });
 
-  it('terminates on a cyclic mention graph', () => {
-    const a = { id: () => '1' };
-    const b = { id: () => '2', mentionsPosts: () => [a] };
-    a.mentionsPosts = () => [b];
+  it('terminates on a cyclic parent graph', () => {
+    const a = { id: () => '1', attribute: () => 2 };
+    const b = { id: () => '2', attribute: () => 1 };
     const lookup = (id) => (String(id) === '1' ? a : b);
     expect(getDepth(a, 100, lookup)).toBe(2);
   });
@@ -151,8 +120,8 @@ describe('getAncestorIds', () => {
   it('lists ancestor ids nearest first', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
-      ['3', '2'],
+      ['2', 1],
+      ['3', 2],
     ]);
     expect(getAncestorIds(posts['3'], lookup)).toEqual(['2', '1']);
   });
@@ -162,8 +131,8 @@ describe('isHidden', () => {
   it('is true when a collapsed ancestor exists', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
-      ['3', '2'],
+      ['2', 1],
+      ['3', 2],
     ]);
     expect(isHidden(posts['3'], new Set(['2']), lookup)).toBe(true);
   });
@@ -171,8 +140,8 @@ describe('isHidden', () => {
   it('is false for the collapsed post itself and unrelated posts', () => {
     const { posts, lookup } = build([
       ['1', null],
-      ['2', '1'],
-      ['3', '2'],
+      ['2', 1],
+      ['3', 2],
     ]);
     expect(isHidden(posts['1'], new Set(['2']), lookup)).toBe(false);
     expect(isHidden(posts['2'], new Set(['2']), lookup)).toBe(false);
