@@ -583,19 +583,23 @@ app.initializers.add('mtareq-nested-replies', () => {
       const body = app.composer && app.composer.body;
       const isReply = body && body.attrs && body.attrs.discussion && !body.attrs.post;
 
-      if (!app.composer || !app.composer.isVisible() || !isReply) {
-        // Load was cancelled by a discard confirmation, or the body is not a
-        // reply composer; restore the previous target.
+      // An unrelated composer is open (e.g. editing a post): do not hijack it.
+      if (body && !isReply) {
         inlineReply = previous;
         pendingParentId = null;
         forceRedraw();
         return;
       }
 
-      // When the composer is already open for this discussion, replyAction skips
-      // the load (and our load override), so retarget the parent directly.
-      body.attrs.replyToPostId = id;
-      pendingParentId = null;
+      if (isReply) {
+        // Already open for this discussion: replyAction skipped the load (and our
+        // load override), so retarget the parent directly.
+        body.attrs.replyToPostId = id;
+        pendingParentId = null;
+      }
+      // Otherwise the load is in flight; the app.composer.load override applies
+      // pendingParentId when the body arrives.
+
       forceRedraw();
       return;
     }
