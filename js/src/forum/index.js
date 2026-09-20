@@ -76,6 +76,30 @@ app.initializers.add('mtareq-nested-replies', () => {
     return `${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}`;
   }
 
+  // The discussion-level Reply button (the one above Follow) calls
+  // DiscussionControls.replyAction. Route it to the in-card form on the
+  // original post (a top-level reply) so it never opens the fixed composer.
+  // Guests and non-replyable discussions keep core's behaviour.
+  const originalReplyAction = DiscussionControls.replyAction;
+
+  if (typeof originalReplyAction === 'function') {
+    DiscussionControls.replyAction = function (...args) {
+      const discussion = this;
+
+      if (!app.session.user || !discussion || typeof discussion.canReply !== 'function' || !discussion.canReply()) {
+        return originalReplyAction.apply(this, args);
+      }
+
+      const postIds = typeof discussion.postIds === 'function' ? discussion.postIds() : [];
+      const op = postIds.length ? app.store.getById('posts', String(postIds[0])) : null;
+
+      if (!op) return originalReplyAction.apply(this, args);
+
+      openInlineReply(op);
+      return undefined;
+    };
+  }
+
   // Ensure every post has a Reply action. flarum/mentions supplies one when it
   // is enabled; otherwise we add our own so threading still works.
   extend(CommentPost.prototype, 'actionItems', function (items) {
@@ -750,7 +774,7 @@ app.initializers.add('mtareq-nested-replies', () => {
       };
       composerPreview = false;
       pendingParentId = id;
-      DiscussionControls.replyAction.call(discussion);
+      originalReplyAction.call(discussion);
 
       const body = app.composer && app.composer.body;
       const isReply = body && body.attrs && body.attrs.discussion && !body.attrs.post;

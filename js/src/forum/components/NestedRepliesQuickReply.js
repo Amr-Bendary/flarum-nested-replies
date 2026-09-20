@@ -99,7 +99,9 @@ export default class NestedRepliesQuickReply extends Component {
       ]),
       this.preview
         ? m(ComposerPostPreview, {
-            className: 'NestedRepliesQuickReply-preview',
+            // `Post-body` so Flarum's post styles (code blocks, quotes, lists)
+            // apply to the rendered preview.
+            className: 'Post-body NestedRepliesQuickReply-preview',
             composer: { isVisible: () => true, fields: { content: () => this.attrs.draft() } },
           })
         : m('textarea.NestedRepliesQuickReply-input', {

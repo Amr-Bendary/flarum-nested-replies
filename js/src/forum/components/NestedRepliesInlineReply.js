@@ -37,7 +37,7 @@ export default class NestedRepliesInlineReply extends Component {
       body && body.componentClass
         ? [
             preview
-              ? m(ComposerPostPreview, { className: 'NestedRepliesInlineComposer-preview', composer: app.composer })
+              ? m(ComposerPostPreview, { className: 'Post-body NestedRepliesInlineComposer-preview', composer: app.composer })
               : null,
             m(
               'div.NestedRepliesInlineComposer-body' + (preview ? '.is-previewing' : ''),
