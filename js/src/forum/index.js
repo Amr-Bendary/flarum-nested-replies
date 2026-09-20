@@ -5,6 +5,7 @@ import Button from 'flarum/common/components/Button';
 import Post from 'flarum/forum/components/Post';
 import CommentPost from 'flarum/forum/components/CommentPost';
 import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
+import Composer from 'flarum/forum/components/Composer';
 import PostStream from 'flarum/forum/components/PostStream';
 import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
 import Stream from 'flarum/common/utils/Stream';
@@ -90,14 +91,14 @@ app.initializers.add('mtareq-nested-replies', () => {
 
           const post = lookup(id);
 
-          if (settings.replyForm === 'quick' && post && app.session.user && post.discussion().canReply()) {
+          if (post && app.session.user && post.discussion().canReply()) {
             event.preventDefault();
             event.stopPropagation();
             openInlineReply(post);
             return;
           }
 
-          // Guests, and (for now) full-composer mode, use Flarum's reply flow.
+          // Guests, and users without reply permission, use Flarum's native flow.
           pendingParentId = id;
 
           const body = app.composer && app.composer.body;
@@ -517,7 +518,41 @@ app.initializers.add('mtareq-nested-replies', () => {
     m.redraw();
   }
 
+  function isInlineComposer() {
+    return Boolean(inlineReply && inlineReply.mode === 'composer' && app.composer && app.composer.isVisible());
+  }
+
+  // While the reply form is inline, hide the fixed composer shell and disable
+  // the shell's layout side effects (page padding, phone backdrop, resizing).
+  override(Composer.prototype, 'view', function (original) {
+    if (isInlineComposer()) return null;
+    return original();
+  });
+
+  override(Composer.prototype, 'updateBodyPadding', function (original) {
+    if (isInlineComposer()) return;
+    return original();
+  });
+
+  override(Composer.prototype, 'animatePositionChange', function (original) {
+    if (isInlineComposer()) return;
+    return original();
+  });
+
+  override(Composer.prototype, 'updateHeight', function (original) {
+    if (isInlineComposer()) return;
+    return original();
+  });
+
   function closeInlineReply() {
+    if (inlineReply && inlineReply.mode === 'composer' && app.composer && app.composer.isVisible()) {
+      app.composer.close();
+
+      // A cancelled discard confirmation leaves the composer visible; keep the
+      // inline host so the draft is not lost.
+      if (app.composer.isVisible()) return;
+    }
+
     inlineReply = null;
     inlineDraft('');
     forceRedraw();
@@ -537,7 +572,35 @@ app.initializers.add('mtareq-nested-replies', () => {
       if (!confirm(app.translator.trans('mtareq-nested-replies.forum.reply_form_discard'))) return;
     }
 
-    inlineReply = { postId: id, discussion: post.discussion(), mode: 'quick' };
+    const discussion = post.discussion();
+
+    if (settings.replyForm === 'composer') {
+      const previous = inlineReply;
+      inlineReply = { postId: id, discussion, mode: 'composer' };
+      pendingParentId = id;
+      DiscussionControls.replyAction.call(discussion);
+
+      const body = app.composer && app.composer.body;
+      const isReply = body && body.attrs && body.attrs.discussion && !body.attrs.post;
+
+      if (!app.composer || !app.composer.isVisible() || !isReply) {
+        // Load was cancelled by a discard confirmation, or the body is not a
+        // reply composer; restore the previous target.
+        inlineReply = previous;
+        pendingParentId = null;
+        forceRedraw();
+        return;
+      }
+
+      // When the composer is already open for this discussion, replyAction skips
+      // the load (and our load override), so retarget the parent directly.
+      body.attrs.replyToPostId = id;
+      pendingParentId = null;
+      forceRedraw();
+      return;
+    }
+
+    inlineReply = { postId: id, discussion, mode: 'quick' };
     inlineDraft('');
     forceRedraw();
   }
@@ -677,6 +740,10 @@ app.initializers.add('mtareq-nested-replies', () => {
           draft: inlineDraft,
           onCancel: closeInlineReply,
           onSubmitted: () => {
+            closeInlineReply();
+            refreshTree();
+          },
+          onClosed: () => {
             closeInlineReply();
             refreshTree();
           },

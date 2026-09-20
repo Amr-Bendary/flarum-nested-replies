@@ -1,16 +1,59 @@
 import Component from 'flarum/common/Component';
+import app from 'flarum/forum/app';
+import Button from 'flarum/common/components/Button';
 import NestedRepliesQuickReply from './NestedRepliesQuickReply';
 
 // Host for the in-card reply form. `indent` is 1 (child level) or 0 (at the
 // depth cap); the LESS converts it to an inline-start margin.
 export default class NestedRepliesInlineReply extends Component {
   view() {
-    const { post, discussion, draft, onCancel, onSubmitted } = this.attrs;
+    const { post, discussion, draft, mode, onCancel, onSubmitted } = this.attrs;
 
     return m(
       'div.NestedRepliesInlineReply',
       { style: `--form-indent: ${this.attrs.indent}` },
-      m(NestedRepliesQuickReply, { post, discussion, draft, onCancel, onSubmitted })
+      mode === 'composer' ? this.composerBody() : m(NestedRepliesQuickReply, { post, discussion, draft, onCancel, onSubmitted })
     );
+  }
+
+  composerBody() {
+    const body = app.composer && app.composer.body;
+    if (!body || !body.componentClass) return null;
+
+    const user = this.attrs.post.user();
+
+    return m('div.NestedRepliesInlineComposer', [
+      m('div.NestedRepliesInlineComposer-head', [
+        m(
+          'span.NestedRepliesInlineComposer-title',
+          app.translator.trans('mtareq-nested-replies.forum.reply_form_replying', { username: user ? user.displayName() : '' })
+        ),
+        m(
+          Button,
+          { className: 'Button Button--link', onclick: () => this.attrs.onCancel() },
+          app.translator.trans('mtareq-nested-replies.forum.reply_form_cancel')
+        ),
+      ]),
+      m(body.componentClass, { ...body.attrs, composer: app.composer }),
+    ]);
+  }
+
+  oninit(vnode) {
+    super.oninit(vnode);
+    this.seenVisible = false;
+  }
+
+  onupdate() {
+    // ReplyComposer hides the composer state on a successful submit; clear the
+    // inline host when that happens. Wait until the composer has been visible
+    // once so an in-flight async show() (2.x) cannot cancel the open form.
+    if (this.attrs.mode !== 'composer' || !app.composer) return;
+
+    if (app.composer.isVisible()) {
+      this.seenVisible = true;
+      return;
+    }
+
+    if (this.seenVisible) this.attrs.onClosed();
   }
 }
