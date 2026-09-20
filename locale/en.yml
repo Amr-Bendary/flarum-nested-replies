@@ -9,6 +9,10 @@ mtareq-nested-replies:
       like_color_label: Like color (active)
       start_at_first_post_label: Start discussions at the first post
       visible_replies_label: Replies shown per level before folding the rest
+      show_scrubber_label: Show discussion scrubber
+      reply_form_label: Reply form
+      reply_form_quick: Quick reply (basic formatting + preview)
+      reply_form_composer: Full composer (embedded in card)
   forum:
     collapse: Collapse replies
     expand: Expand replies
@@ -24,3 +28,16 @@ mtareq-nested-replies:
     sort_top: Top voted
     sort_replies: Most replies
     sort_loading: Loading...
+    reply_form_placeholder: "Reply to {username}…"
+    reply_form_placeholder_op: "Write a reply…"
+    reply_form_write: Write
+    reply_form_preview: Preview
+    reply_form_bold: Bold
+    reply_form_italic: Italic
+    reply_form_quote: Quote
+    reply_form_link: Link
+    reply_form_submit: Post reply
+    reply_form_cancel: Cancel
+    reply_form_replying: "Replying to {username}"
+    reply_form_error: Could not post your reply. Please try again.
+    reply_form_discard: Discard your draft reply?

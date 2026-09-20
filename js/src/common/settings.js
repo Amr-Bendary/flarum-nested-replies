@@ -31,5 +31,7 @@ export function readSettings(app) {
     likeColor: String(read('nestedRepliesLikeColor', '#ff4500')),
     startAtFirstPost: Boolean(read('nestedRepliesStartAtFirstPost', true)),
     visibleReplies: Number(read('nestedRepliesVisibleReplies', 1)) || 1,
+    showScrubber: Boolean(read('nestedRepliesShowScrubber', true)),
+    replyForm: read('nestedRepliesReplyForm', 'quick') === 'composer' ? 'composer' : 'quick',
   };
 }

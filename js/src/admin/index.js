@@ -42,5 +42,19 @@ app.initializers.add('mtareq-nested-replies', () => {
       setting: 'mtareq-nested-replies.visible_replies',
       type: 'number',
       label: app.translator.trans('mtareq-nested-replies.admin.settings.visible_replies_label'),
+    })
+    .registerSetting({
+      setting: 'mtareq-nested-replies.show_scrubber',
+      type: 'boolean',
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.show_scrubber_label'),
+    })
+    .registerSetting({
+      setting: 'mtareq-nested-replies.reply_form',
+      type: 'select',
+      options: {
+        quick: app.translator.trans('mtareq-nested-replies.admin.settings.reply_form_quick'),
+        composer: app.translator.trans('mtareq-nested-replies.admin.settings.reply_form_composer'),
+      },
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.reply_form_label'),
     });
 });

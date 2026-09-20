@@ -5,6 +5,19 @@ function fakeApp(attrs) {
   return { forum: { attribute: (name) => attrs[name] } };
 }
 
+const defaults = {
+  enabled: true,
+  maxDepth: 5,
+  showVotes: true,
+  showReplyTag: true,
+  showRepliedIndicator: true,
+  likeColor: '#ff4500',
+  startAtFirstPost: true,
+  visibleReplies: 1,
+  showScrubber: true,
+  replyForm: 'quick',
+};
+
 describe('readSettings', () => {
   it('uses the serialized forum attributes', () => {
     const settings = readSettings(
@@ -17,6 +30,8 @@ describe('readSettings', () => {
         nestedRepliesLikeColor: '#00ff00',
         nestedRepliesStartAtFirstPost: false,
         nestedRepliesVisibleReplies: 3,
+        nestedRepliesShowScrubber: false,
+        nestedRepliesReplyForm: 'composer',
       })
     );
     expect(settings).toEqual({
@@ -28,33 +43,21 @@ describe('readSettings', () => {
       likeColor: '#00ff00',
       startAtFirstPost: false,
       visibleReplies: 3,
+      showScrubber: false,
+      replyForm: 'composer',
     });
   });
 
   it('falls back to defaults when attributes are missing', () => {
-    expect(readSettings(fakeApp({}))).toEqual({
-      enabled: true,
-      maxDepth: 5,
-      showVotes: true,
-      showReplyTag: true,
-      showRepliedIndicator: true,
-      likeColor: '#ff4500',
-      startAtFirstPost: true,
-      visibleReplies: 1,
-    });
+    expect(readSettings(fakeApp({}))).toEqual(defaults);
   });
 
   it('falls back to defaults when app is absent', () => {
-    expect(readSettings(null)).toEqual({
-      enabled: true,
-      maxDepth: 5,
-      showVotes: true,
-      showReplyTag: true,
-      showRepliedIndicator: true,
-      likeColor: '#ff4500',
-      startAtFirstPost: true,
-      visibleReplies: 1,
-    });
+    expect(readSettings(null)).toEqual(defaults);
+  });
+
+  it('coerces an unknown reply form to quick', () => {
+    expect(readSettings(fakeApp({ nestedRepliesReplyForm: 'nonsense' })).replyForm).toBe('quick');
   });
 
   it('reads the serialized attributes from the initial payload before boot', () => {
@@ -70,14 +73,10 @@ describe('readSettings', () => {
       },
     };
     expect(readSettings(app)).toEqual({
-      enabled: true,
+      ...defaults,
       maxDepth: 2,
-      showVotes: true,
       showReplyTag: false,
       showRepliedIndicator: false,
-      likeColor: '#ff4500',
-      startAtFirstPost: true,
-      visibleReplies: 1,
     });
   });
 });
