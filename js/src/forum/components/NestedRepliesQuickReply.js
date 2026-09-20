@@ -56,9 +56,9 @@ export default class NestedRepliesQuickReply extends Component {
     app.store
       .createRecord('posts')
       .save(buildReplyData(content, this.attrs.post.id(), this.attrs.discussion))
-      .then(() => {
+      .then((post) => {
         this.saving = false;
-        this.attrs.onSubmitted();
+        this.attrs.onSubmitted(post);
       })
       .catch(() => {
         this.saving = false;

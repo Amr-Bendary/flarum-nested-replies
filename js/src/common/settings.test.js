@@ -16,6 +16,7 @@ const defaults = {
   visibleReplies: 1,
   showScrubber: true,
   replyForm: 'quick',
+  highlightColor: '#00c853',
 };
 
 describe('readSettings', () => {
@@ -32,6 +33,7 @@ describe('readSettings', () => {
         nestedRepliesVisibleReplies: 3,
         nestedRepliesShowScrubber: false,
         nestedRepliesReplyForm: 'composer',
+        nestedRepliesHighlightColor: '#123456',
       })
     );
     expect(settings).toEqual({
@@ -45,6 +47,7 @@ describe('readSettings', () => {
       visibleReplies: 3,
       showScrubber: false,
       replyForm: 'composer',
+      highlightColor: '#123456',
     });
   });
 

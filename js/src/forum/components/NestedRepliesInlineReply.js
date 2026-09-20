@@ -1,6 +1,7 @@
 import Component from 'flarum/common/Component';
 import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
+import ComposerPostPreview from 'flarum/forum/components/ComposerPostPreview';
 import NestedRepliesQuickReply from './NestedRepliesQuickReply';
 
 // Host for the in-card reply form. `indent` is 1 (child level) or 0 (at the
@@ -19,6 +20,7 @@ export default class NestedRepliesInlineReply extends Component {
   composerBody() {
     const body = app.composer && app.composer.body;
     const user = this.attrs.post.user();
+    const preview = Boolean(this.attrs.preview);
 
     return m('div.NestedRepliesInlineComposer', [
       m('div.NestedRepliesInlineComposer-head', [
@@ -33,7 +35,15 @@ export default class NestedRepliesInlineReply extends Component {
         ),
       ]),
       body && body.componentClass
-        ? m(body.componentClass, { ...body.attrs, composer: app.composer })
+        ? [
+            preview
+              ? m(ComposerPostPreview, { className: 'NestedRepliesInlineComposer-preview', composer: app.composer })
+              : null,
+            m(
+              'div.NestedRepliesInlineComposer-body' + (preview ? '.is-previewing' : ''),
+              m(body.componentClass, { ...body.attrs, composer: app.composer })
+            ),
+          ]
         : m('div.NestedRepliesInlineComposer-loading', app.translator.trans('mtareq-nested-replies.forum.sort_loading')),
     ]);
   }

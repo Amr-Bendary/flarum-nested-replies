@@ -123,6 +123,26 @@
     background: rgba(0, 0, 0, 0.025);
   }
 
+  // Briefly highlight the reply the reader just posted so they can spot it.
+  // The tint is a pseudo-element that starts after the thread gutter, so it
+  // never paints over the depth guide line.
+  &--new > .NestedRepliesPost-container {
+    position: relative;
+    border-radius: 6px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: var(--gutter);
+      inset-inline-end: 0;
+      border-radius: 6px;
+      background-color: transparent;
+      animation: NestedRepliesNewReply 3s ease-out 1;
+      pointer-events: none;
+    }
+  }
+
   // A post holding a folded sibling group ends at the control, so the thread
   // guide lines stop there rather than running past it. An opaque, indented
   // footer fill covers every thread column this post paints from the moment
@@ -191,6 +211,21 @@
     .Post-content {
       display: none;
     }
+  }
+}
+
+// Fade the "just posted" highlight out over three seconds. Only the background
+// is animated so nothing is drawn over the thread guide lines. The colour comes
+// from the admin setting via --nested-replies-highlight-rgb.
+@keyframes NestedRepliesNewReply {
+  0% {
+    background-color: ~"rgba(var(--nested-replies-highlight-rgb, 0, 200, 83), 0.18)";
+  }
+  60% {
+    background-color: ~"rgba(var(--nested-replies-highlight-rgb, 0, 200, 83), 0.11)";
+  }
+  100% {
+    background-color: transparent;
   }
 }
 
@@ -567,10 +602,12 @@ a.NestedRepliesReplyTag {
   }
 }
 
-// In-card reply form, indented one level under the post being replied to.
+// In-card reply form. It sits inside the replied-to post's own indented
+// content column, so an equal inline margin on both sides centres it within
+// that column; the column (and therefore the centring) follows the post depth.
 // --form-indent is 1 (child level) or 0 (at the depth cap).
 .NestedRepliesInlineReply {
-  margin-inline-start: ~"calc(var(--form-indent, 1) * var(--indent))";
+  margin-inline: ~"calc(var(--form-indent, 1) * var(--indent))";
   margin-top: 8px;
 }
 
@@ -691,9 +728,80 @@ a.NestedRepliesReplyTag {
     font-size: 12px;
   }
 
-  // The core composer body already has its own padding; keep it inside the box.
+  &-loading {
+    padding: 14px 12px;
+    color: #878a8c;
+    font-size: 13px;
+  }
+
+  // Core's fixed-composer body expects a large floated avatar and a flexing
+  // content column. Inline, use a compact flex row so a small avatar sits
+  // beside the editor and the submit button never overlaps it.
   .ComposerBody {
-    padding: 0 10px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px 12px;
+  }
+
+  .ComposerBody-avatar {
+    float: none;
+    flex: 0 0 auto;
+    --size: 28px;
+    width: 28px;
+    height: 28px;
+    margin-top: 2px;
+  }
+
+  .ComposerBody-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    // Core reserves space for the floated avatar; with a small flex avatar that
+    // margin only pushes the content away from it.
+    margin: 0;
+  }
+
+  // The editor's preview (eye) control sits slightly off-centre because core's
+  // `.Button .icon` carries a trailing margin.
+  .TextEditor-controls .Button--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon {
+      margin: 0;
+    }
+  }
+
+  // Core's composer footer assumes the fixed composer's 64px avatar gutter:
+  // its negative margins overflow the card and its submit button is absolutely
+  // positioned. Keep both inside the inline body.
+  .ComposerBody-editor .TextEditor-controls {
+    margin: 0 -12px;
+    padding: 10px 12px;
+    overflow: visible;
+  }
+
+  .ComposerBody-editor .TextEditor-controls .item-submit {
+    position: static !important;
+  }
+
+  &-preview {
+    padding: 10px 12px;
+    min-height: 60px;
+    color: #1c1c1e;
+    font-size: 14px;
+  }
+
+  // While previewing, show the rendered post in place of the editor textarea.
+  // The avatar is hidden too: with the editor gone the flex row collapses to
+  // the toolbar height, which would drop the avatar down beside the submit.
+  &-body.is-previewing {
+    .ComposerBody-header,
+    .ComposerBody-avatar,
+    .TextEditor-editorContainer {
+      display: none;
+    }
   }
 }
 

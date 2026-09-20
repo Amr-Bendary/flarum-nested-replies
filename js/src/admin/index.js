@@ -56,5 +56,10 @@ app.initializers.add('mtareq-nested-replies', () => {
         composer: app.translator.trans('mtareq-nested-replies.admin.settings.reply_form_composer'),
       },
       label: app.translator.trans('mtareq-nested-replies.admin.settings.reply_form_label'),
+    })
+    .registerSetting({
+      setting: 'mtareq-nested-replies.highlight_color',
+      type: 'color',
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.highlight_color_label'),
     });
 });

@@ -27,6 +27,7 @@ $extenders = [
         ->default('mtareq-nested-replies.visible_replies', '1')
         ->default('mtareq-nested-replies.show_scrubber', '1')
         ->default('mtareq-nested-replies.reply_form', 'quick')
+        ->default('mtareq-nested-replies.highlight_color', '#00c853')
         ->serializeToForum('nestedRepliesEnabled', 'mtareq-nested-replies.enabled', 'boolval')
         ->serializeToForum('nestedRepliesMaxDepth', 'mtareq-nested-replies.max_depth', 'intval')
         ->serializeToForum('nestedRepliesShowVotes', 'mtareq-nested-replies.show_votes', 'boolval')
@@ -36,7 +37,8 @@ $extenders = [
         ->serializeToForum('nestedRepliesStartAtFirstPost', 'mtareq-nested-replies.start_at_first_post', 'boolval')
         ->serializeToForum('nestedRepliesVisibleReplies', 'mtareq-nested-replies.visible_replies', 'intval')
         ->serializeToForum('nestedRepliesShowScrubber', 'mtareq-nested-replies.show_scrubber', 'boolval')
-        ->serializeToForum('nestedRepliesReplyForm', 'mtareq-nested-replies.reply_form'),
+        ->serializeToForum('nestedRepliesReplyForm', 'mtareq-nested-replies.reply_form')
+        ->serializeToForum('nestedRepliesHighlightColor', 'mtareq-nested-replies.highlight_color'),
 
     (new Extend\Routes('api'))
         ->post('/mtareq-nested-replies/posts/{id}/vote', 'mtareq-nested-replies.vote', VotePostController::class),

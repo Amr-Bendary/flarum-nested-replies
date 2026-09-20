@@ -58,6 +58,7 @@ forum as `nestedReplies*` attributes.
 | Start discussions at the first post | `mtareq-nested-replies.start_at_first_post` | Boolean | `on` | Opens a discussion at the original post instead of jumping to the first unread post. Search-result jumps are preserved. |
 | Show discussion scrubber | `mtareq-nested-replies.show_scrubber` | Boolean | `on` | Shows the discussion scrubber (Original Post / N of M / unread / Now). Turn off to hide it on desktop and mobile. |
 | Reply form | `mtareq-nested-replies.reply_form` | Select | `Quick reply` | `Quick reply` renders a lightweight textarea with basic formatting and preview inside the card. `Full composer` embeds Flarum's full reply composer inside the card. |
+| New reply highlight color | `mtareq-nested-replies.highlight_color` | Color | `#00c853` | Color of the brief fade-in highlight shown on a reply the reader just posted, so they can spot it. |
 
 ## Manual test matrix
 

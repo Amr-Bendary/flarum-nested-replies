@@ -51,10 +51,29 @@ app.initializers.add('mtareq-nested-replies', () => {
   // switch can warn before discarding).
   let inlineReply = null;
   const inlineDraft = Stream('');
+  // Whether the embedded composer is showing the rendered preview instead of
+  // the editor (toggled by the composer's eye control).
+  let composerPreview = false;
+
+  // The reply just posted, highlighted briefly so its author can spot it.
+  const HIGHLIGHT_DURATION = 3000;
+  let highlightedPostId = null;
+  let highlightTimer = null;
 
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('NestedRepliesHideMentionedBy', !settings.showRepliedIndicator);
     document.documentElement.style.setProperty('--nested-replies-like-color', settings.likeColor || '#ff4500');
+    document.documentElement.style.setProperty('--nested-replies-highlight-rgb', hexToRgbTriplet(settings.highlightColor, '0, 200, 83'));
+  }
+
+  // Parse `#rrggbb` into an `r, g, b` triplet for use inside rgba(). Anything
+  // else falls back to the default so the highlight never breaks.
+  function hexToRgbTriplet(hex, fallback) {
+    const match = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!match) return fallback;
+
+    const value = parseInt(match[1], 16);
+    return `${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}`;
   }
 
   // Ensure every post has a Reply action. flarum/mentions supplies one when it
@@ -146,6 +165,18 @@ app.initializers.add('mtareq-nested-replies', () => {
       if (attrs.replyToPostId != null) data.replyToPostId = attrs.replyToPostId;
       return data;
     };
+
+    // Core's preview control navigates to the full-page reply route. Inline,
+    // toggle the rendered preview in place instead so the page does not jump.
+    const originalJumpToPreview = proto.jumpToPreview;
+    proto.jumpToPreview = function (...args) {
+      if (!isInlineComposer()) {
+        return originalJumpToPreview ? originalJumpToPreview.apply(this, args) : undefined;
+      }
+
+      composerPreview = !composerPreview;
+      forceRedraw();
+    };
   }
 
   if (app.composer && typeof app.composer.load === 'function') {
@@ -182,13 +213,29 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     app.composer.hide = function (...args) {
       const wasInline = Boolean(inlineReply && inlineReply.mode === 'composer');
+      const parentId = wasInline ? inlineReply.postId : null;
+      const discussion = wasInline ? inlineReply.discussion : null;
+      const baselineId = wasInline ? inlineReply.baselinePostId : null;
+      const latest = wasInline ? latestPostIn(discussion) : null;
+      // hide() runs for both submit and cancel. A new newest post means a reply
+      // was actually posted; otherwise this was a cancel and nothing changed.
+      const posted = Boolean(latest && latest.id && String(latest.id()) !== String(baselineId));
+
       const result = originalHide.apply(this, args);
 
       if (wasInline) {
         inlineReply = null;
         inlineDraft('');
-        forceRedraw();
-        refreshTree();
+        composerPreview = false;
+
+        if (posted) {
+          revealReply(parentId);
+          forceRedraw();
+          refreshTree(latest.id());
+        } else {
+          // Cancelled: clear the form without revealing or scrolling anywhere.
+          forceRedraw();
+        }
       }
 
       return result;
@@ -236,6 +283,8 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     element.classList.add('NestedRepliesPost');
     element.classList.toggle('NestedRepliesPost--op', op);
+    // Brief highlight on the reply the reader just posted.
+    element.classList.toggle('NestedRepliesPost--new', highlightedPostId != null && id === highlightedPostId);
 
     // Flarum 2.x ships a `.Post-container` wrapper; 1.x has an unnamed div.
     // Tag it ourselves so the LESS works on both.
@@ -601,12 +650,52 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     inlineReply = null;
     inlineDraft('');
+    composerPreview = false;
     forceRedraw();
   }
 
+  // Make a freshly posted reply visible: clear any collapsed ancestor and
+  // expand every sibling group along the parent chain, so a reply that would
+  // otherwise be folded behind "Show more replies" is shown.
+  function revealReply(parentId) {
+    let id = parentId ? String(parentId) : null;
+    const seen = new Set();
+
+    while (id && !seen.has(id)) {
+      seen.add(id);
+      collapsed.delete(id);
+      expandedGroups.add(id);
+
+      const post = lookup(id);
+      id = post ? getParentId(post) : null;
+    }
+  }
+
+  // The newest loaded post in a discussion. Used to focus a reply just posted
+  // through the native composer, whose id we never receive.
+  function latestPostIn(discussion) {
+    if (!discussion || !app.store || typeof app.store.all !== 'function') return null;
+
+    const discussionId = String(discussion.id());
+    const posts = app.store.all('posts').filter((post) => {
+      if (!post || typeof post.number !== 'function') return false;
+
+      const related = post.discussion && post.discussion();
+      if (related) return String(related.id()) === discussionId;
+
+      const attr = post.attribute ? post.attribute('discussionId') : null;
+      return attr != null && String(attr) === discussionId;
+    });
+
+    if (!posts.length) return null;
+
+    return posts.reduce((latest, post) => (Number(post.number()) >= Number(latest.number()) ? post : latest));
+  }
+
   // Refetch every page without dropping the current tree, so the view never
-  // flashes back to the native fallback.
-  function refreshTree() {
+  // flashes back to the native fallback. Optionally scroll a just-posted reply
+  // into view and briefly highlight it.
+  function refreshTree(focusPostId) {
     if (refreshing) return;
     refreshing = true;
 
@@ -617,7 +706,25 @@ app.initializers.add('mtareq-nested-replies', () => {
       .catch(() => {})
       .then(() => {
         refreshing = false;
-        m.redraw();
+
+        if (focusPostId != null) {
+          highlightedPostId = String(focusPostId);
+
+          if (highlightTimer) clearTimeout(highlightTimer);
+          highlightTimer = setTimeout(() => {
+            highlightedPostId = null;
+            forceRedraw();
+          }, HIGHLIGHT_DURATION);
+        }
+
+        forceRedraw();
+
+        if (focusPostId != null) {
+          requestAnimationFrame(() => {
+            const element = document.querySelector(`.PostStream-item[data-id="${focusPostId}"]`);
+            if (element && element.scrollIntoView) element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          });
+        }
       });
   }
 
@@ -632,7 +739,16 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     if (settings.replyForm === 'composer') {
       const previous = inlineReply;
-      inlineReply = { postId: id, discussion, mode: 'composer' };
+      const baseline = latestPostIn(discussion);
+      inlineReply = {
+        postId: id,
+        discussion,
+        mode: 'composer',
+        // Newest post id when the form opened; hide() compares against it to
+        // tell a real submit apart from a cancel.
+        baselinePostId: baseline && baseline.id ? String(baseline.id()) : null,
+      };
+      composerPreview = false;
       pendingParentId = id;
       DiscussionControls.replyAction.call(discussion);
 
@@ -800,11 +916,14 @@ app.initializers.add('mtareq-nested-replies', () => {
           mode: inlineReply.mode,
           indent: childDepth - depth,
           draft: inlineDraft,
+          preview: composerPreview,
           onRedraw: forceRedraw,
           onCancel: closeInlineReply,
-          onSubmitted: () => {
+          onSubmitted: (created) => {
+            const parentId = inlineReply ? inlineReply.postId : null;
             closeInlineReply();
-            refreshTree();
+            revealReply(parentId);
+            refreshTree(created && created.id ? created.id() : null);
           },
           onClosed: () => {
             closeInlineReply();

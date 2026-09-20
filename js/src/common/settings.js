@@ -33,5 +33,6 @@ export function readSettings(app) {
     visibleReplies: Number(read('nestedRepliesVisibleReplies', 1)) || 1,
     showScrubber: Boolean(read('nestedRepliesShowScrubber', true)),
     replyForm: read('nestedRepliesReplyForm', 'quick') === 'composer' ? 'composer' : 'quick',
+    highlightColor: String(read('nestedRepliesHighlightColor', '#00c853')),
   };
 }

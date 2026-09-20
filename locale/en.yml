@@ -13,6 +13,7 @@ mtareq-nested-replies:
       reply_form_label: Reply form
       reply_form_quick: Quick reply (basic formatting + preview)
       reply_form_composer: Full composer (embedded in card)
+      highlight_color_label: New reply highlight color
   forum:
     collapse: Collapse replies
     expand: Expand replies

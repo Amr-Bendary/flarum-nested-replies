@@ -196,6 +196,7 @@ settings.js readSettings(app)        -> typed settings object for the UI
 | `nestedRepliesVisibleReplies` | `mtareq-nested-replies.visible_replies` | int |
 | `nestedRepliesShowScrubber` | `mtareq-nested-replies.show_scrubber` | bool |
 | `nestedRepliesReplyForm` | `mtareq-nested-replies.reply_form` | string (`quick` \| `composer`) |
+| `nestedRepliesHighlightColor` | `mtareq-nested-replies.highlight_color` | string (hex) |
 
 ## Dependencies
 
