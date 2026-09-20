@@ -72,6 +72,8 @@ Verify on a real Flarum install across these combinations:
 
 Repeat the matrix with **Reply form = Quick reply** and **Reply form = Full composer**, and with **Show discussion scrubber** on and off. For each reply form, check: Reply on the original post adds a top-level reply; Reply on a reply nests under it; only one form is open at a time; a posted reply appears without a reload; guests still get the login prompt.
 
+For **Reply form = Full composer**, also verify on a real install: the normal fixed composer still works after using an in-card composer (new discussion / edit post); a composer-mode reply scrolls and refreshes correctly on a long thread; rapid switching between reply targets behaves; and a failed composer load shows the loading fallback with a working Cancel.
+
 Votes are available to signed-in users on every supported version; guests see
 the rail disabled.
 

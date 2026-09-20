@@ -18,8 +18,6 @@ export default class NestedRepliesInlineReply extends Component {
 
   composerBody() {
     const body = app.composer && app.composer.body;
-    if (!body || !body.componentClass) return null;
-
     const user = this.attrs.post.user();
 
     return m('div.NestedRepliesInlineComposer', [
@@ -34,7 +32,9 @@ export default class NestedRepliesInlineReply extends Component {
           app.translator.trans('mtareq-nested-replies.forum.reply_form_cancel')
         ),
       ]),
-      m(body.componentClass, { ...body.attrs, composer: app.composer }),
+      body && body.componentClass
+        ? m(body.componentClass, { ...body.attrs, composer: app.composer })
+        : m('div.NestedRepliesInlineComposer-loading', app.translator.trans('mtareq-nested-replies.forum.sort_loading')),
     ]);
   }
 

@@ -574,6 +574,12 @@ a.NestedRepliesReplyTag {
   margin-top: 8px;
 }
 
+// The fixed composer shell is emptied while a reply form is inline; keep the
+// reused root node out of the layout.
+.Composer.Composer--nestedInlineHidden {
+  display: none !important;
+}
+
 .NestedRepliesQuickReply {
   border: 1px solid #dfe3e6;
   border-radius: 8px;

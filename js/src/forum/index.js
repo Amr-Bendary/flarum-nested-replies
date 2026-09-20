@@ -19,6 +19,12 @@ import NestedRepliesInlineReply from './components/NestedRepliesInlineReply';
 
 app.initializers.add('mtareq-nested-replies', () => {
   const settings = readSettings(app);
+
+  // The scrubber setting is independent of the master switch.
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.classList.toggle('NestedRepliesHideScrubber', !settings.showScrubber);
+  }
+
   if (!settings.enabled) return;
 
   const votes = createVoteAdapter(app);
@@ -37,6 +43,7 @@ app.initializers.add('mtareq-nested-replies', () => {
   let sortMode = 'oldest';
   let allPosts = null;
   let loadingAll = false;
+  let refreshing = false;
   let currentDiscussion = null;
   let pendingParentId = null;
 
@@ -47,7 +54,6 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('NestedRepliesHideMentionedBy', !settings.showRepliedIndicator);
-    document.documentElement.classList.toggle('NestedRepliesHideScrubber', !settings.showScrubber);
     document.documentElement.style.setProperty('--nested-replies-like-color', settings.likeColor || '#ff4500');
   }
 
@@ -433,6 +439,7 @@ app.initializers.add('mtareq-nested-replies', () => {
       expandedGroups.clear();
       allPosts = null;
       loadingAll = false;
+      refreshing = false;
       foldPlan = { hidden: new Set(), moreAfter: new Map() };
     }
 
@@ -525,7 +532,9 @@ app.initializers.add('mtareq-nested-replies', () => {
   // While the reply form is inline, hide the fixed composer shell and disable
   // the shell's layout side effects (page padding, phone backdrop, resizing).
   override(Composer.prototype, 'view', function (original) {
-    if (isInlineComposer()) return null;
+    // Keep the same root tag so Mithril reuses the shell's DOM node (and the
+    // lifecycle handlers bound in oncreate) instead of orphaning them.
+    if (isInlineComposer()) return m('div.Composer.Composer--nestedInlineHidden');
     return original();
   });
 
@@ -558,11 +567,21 @@ app.initializers.add('mtareq-nested-replies', () => {
     forceRedraw();
   }
 
-  // The sorted tree caches every post per discussion; drop the cache so a newly
-  // posted reply appears without a reload.
+  // Refetch every page without dropping the current tree, so the view never
+  // flashes back to the native fallback.
   function refreshTree() {
-    allPosts = null;
-    loadAllPosts();
+    if (refreshing) return;
+    refreshing = true;
+
+    fetchAllPosts()
+      .then((posts) => {
+        if (posts && posts.length) allPosts = posts;
+      })
+      .catch(() => {})
+      .then(() => {
+        refreshing = false;
+        m.redraw();
+      });
   }
 
   function openInlineReply(post) {
@@ -582,16 +601,18 @@ app.initializers.add('mtareq-nested-replies', () => {
 
       const body = app.composer && app.composer.body;
       const isReply = body && body.attrs && body.attrs.discussion && !body.attrs.post;
+      const sameDiscussion = isReply && body.attrs.discussion === discussion;
 
-      // An unrelated composer is open (e.g. editing a post): do not hijack it.
-      if (app.composer && app.composer.isVisible() && !isReply) {
+      // An unrelated composer is open (e.g. editing a post), or a reply composer
+      // for another discussion: do not hijack it.
+      if (app.composer && app.composer.isVisible() && !sameDiscussion) {
         inlineReply = previous;
         pendingParentId = null;
         forceRedraw();
         return;
       }
 
-      if (isReply) {
+      if (sameDiscussion) {
         // Already open for this discussion: replyAction skipped the load (and our
         // load override), so retarget the parent directly.
         body.attrs.replyToPostId = id;
