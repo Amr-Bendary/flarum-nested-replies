@@ -40,6 +40,7 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('NestedRepliesHideMentionedBy', !settings.showRepliedIndicator);
+    document.documentElement.classList.toggle('NestedRepliesHideScrubber', !settings.showScrubber);
     document.documentElement.style.setProperty('--nested-replies-like-color', settings.likeColor || '#ff4500');
   }
 

@@ -5,6 +5,12 @@
 @nested-thread-a: rgba(12, 166, 120, 0.19);
 @nested-thread-b: rgba(253, 126, 20, 0.19);
 
+// Hide Flarum's discussion scrubber (Original Post / N of M / unread / Now) when
+// the admin turns the setting off. Root class is set by the forum initializer.
+.NestedRepliesHideScrubber .PostStreamScrubber {
+  display: none !important;
+}
+
 // Core draws a 1px separator between every stream item. The reply card below
 // draws its own dividers between top-level replies only, so remove the core
 // one.
