@@ -157,13 +157,24 @@ rebuilds without a full page reload.
 - `CollapseToggle` — icon button that flips the collapsed state via callback.
 - `MoreReplies` — "Show more replies" pill for a folded sibling group; reveals the
   group via callback and lines up with the hidden replies using a depth delta.
+- `NestedRepliesInlineReply` — host for the in-card reply form. Renders the quick
+  editor or, in `composer` mode, core's loaded `ReplyComposer` body. `index.js`
+  intercepts `.item-reply` clicks (capture phase) and records the target in
+  `inlineReply`; the target post's footer renders the host indented one level.
+  A successful post clears the form and invalidates the cached `allPosts` so the
+  tree refreshes. In composer mode the fixed `Composer` shell is suppressed.
+- `NestedRepliesQuickReply` — plain textarea with bold/italic/quote/link (pure
+  `forum/utils/markdownFormat.js`) and a Write/Preview toggle that renders
+  `ComposerPostPreview`.
 
 ### Styling (`less/forum.less`)
 
 Cards, depth-colored guide lines (drawn as stacked background gradients per
 `data-depth`), the inline action bar, the vote rail, the reply tag, and RTL
 mirroring. The active Like color is driven by the `--nested-replies-like-color`
-CSS variable, set from the `like_color` setting.
+CSS variable, set from the `like_color` setting. When the scrubber setting is off,
+`index.js` adds `NestedRepliesHideScrubber` to the root element and `forum.less`
+hides `.PostStreamScrubber`.
 
 ## Settings pipeline
 
@@ -183,6 +194,8 @@ settings.js readSettings(app)        -> typed settings object for the UI
 | `nestedRepliesLikeColor` | `mtareq-nested-replies.like_color` | string |
 | `nestedRepliesStartAtFirstPost` | `mtareq-nested-replies.start_at_first_post` | bool |
 | `nestedRepliesVisibleReplies` | `mtareq-nested-replies.visible_replies` | int |
+| `nestedRepliesShowScrubber` | `mtareq-nested-replies.show_scrubber` | bool |
+| `nestedRepliesReplyForm` | `mtareq-nested-replies.reply_form` | string (`quick` \| `composer`) |
 
 ## Dependencies
 

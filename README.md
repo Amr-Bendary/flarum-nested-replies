@@ -15,6 +15,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the extension is put together.
 - Reply parent stored explicitly per reply (the post whose Reply button was clicked),
   so quoting several people never changes the thread structure.
 - Optional "Reply to {username}" header tag, like color, and more via admin settings.
+- Replies are composed inside the card, indented under the post being replied to
+  (quick textarea or full embedded composer, per admin setting).
+- Optional hide for the discussion scrubber.
 
 ## Requirements
 
@@ -53,6 +56,8 @@ forum as `nestedReplies*` attributes.
 | Show "replied to this" indicator | `mtareq-nested-replies.show_replied_indicator` | Boolean | `on` | Shows flarum/mentions' "You replied to this." summary above the post. Turn off to hide it. |
 | Like color (active) | `mtareq-nested-replies.like_color` | Color | `#ff4500` | Color of the Like action once a post is liked (requires `flarum/likes`). |
 | Start discussions at the first post | `mtareq-nested-replies.start_at_first_post` | Boolean | `on` | Opens a discussion at the original post instead of jumping to the first unread post. Search-result jumps are preserved. |
+| Show discussion scrubber | `mtareq-nested-replies.show_scrubber` | Boolean | `on` | Shows the discussion scrubber (Original Post / N of M / unread / Now). Turn off to hide it on desktop and mobile. |
+| Reply form | `mtareq-nested-replies.reply_form` | Select | `Quick reply` | `Quick reply` renders a lightweight textarea with basic formatting and preview inside the card. `Full composer` embeds Flarum's full reply composer inside the card. |
 
 ## Manual test matrix
 
@@ -64,6 +69,8 @@ Verify on a real Flarum install across these combinations:
 | 2.x | off | Nested threading works; this extension supplies the per-post Reply action |
 | 1.x | on | Same as 2.x equivalent |
 | 1.x | off | Nested threading works; this extension supplies the per-post Reply action |
+
+Repeat the matrix with **Reply form = Quick reply** and **Reply form = Full composer**, and with **Show discussion scrubber** on and off. For each reply form, check: Reply on the original post adds a top-level reply; Reply on a reply nests under it; only one form is open at a time; a posted reply appears without a reload; guests still get the login prompt.
 
 Votes are available to signed-in users on every supported version; guests see
 the rail disabled.
