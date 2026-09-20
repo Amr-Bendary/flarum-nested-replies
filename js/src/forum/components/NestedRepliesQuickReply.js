@@ -60,9 +60,7 @@ export default class NestedRepliesQuickReply extends Component {
   view() {
     const trans = (key, params) => app.translator.trans(`mtareq-nested-replies.forum.${key}`, params);
     const user = this.attrs.post.user();
-    const placeholder = user
-      ? trans('reply_form_placeholder', { username: user.displayName() })
-      : trans('reply_form_placeholder_op');
+    const placeholder = user ? trans('reply_form_placeholder', { username: user.displayName() }) : trans('reply_form_placeholder_op');
 
     return m('div.NestedRepliesQuickReply', [
       m('div.NestedRepliesQuickReply-tabs', [
