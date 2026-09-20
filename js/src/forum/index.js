@@ -6,14 +6,15 @@ import Post from 'flarum/forum/components/Post';
 import CommentPost from 'flarum/forum/components/CommentPost';
 import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
 import PostStream from 'flarum/forum/components/PostStream';
-import ReplyPlaceholder from 'flarum/forum/components/ReplyPlaceholder';
 import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
+import Stream from 'flarum/common/utils/Stream';
 import { readSettings } from '../common/settings';
 import { createVoteAdapter } from '../common/voteAdapter';
 import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId, planSiblingFolding } from './utils/threadDepths';
 import VoteRail from './components/VoteRail';
 import CollapseToggle from './components/CollapseToggle';
 import MoreReplies from './components/MoreReplies';
+import NestedRepliesInlineReply from './components/NestedRepliesInlineReply';
 
 app.initializers.add('mtareq-nested-replies', () => {
   const settings = readSettings(app);
@@ -37,6 +38,11 @@ app.initializers.add('mtareq-nested-replies', () => {
   let loadingAll = false;
   let currentDiscussion = null;
   let pendingParentId = null;
+
+  // The open in-card reply form, and the draft it holds (shared so a target
+  // switch can warn before discarding).
+  let inlineReply = null;
+  const inlineDraft = Stream('');
 
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.classList.toggle('NestedRepliesHideMentionedBy', !settings.showRepliedIndicator);
@@ -80,9 +86,20 @@ app.initializers.add('mtareq-nested-replies', () => {
         if (replyItem) {
           const item = replyItem.closest('.PostStream-item[data-id]');
           const id = item ? String(item.getAttribute('data-id')) : null;
+          if (!id) return;
+
+          const post = lookup(id);
+
+          if (settings.replyForm === 'quick' && post && app.session.user && post.discussion().canReply()) {
+            event.preventDefault();
+            event.stopPropagation();
+            openInlineReply(post);
+            return;
+          }
+
+          // Guests, and (for now) full-composer mode, use Flarum's reply flow.
           pendingParentId = id;
 
-          // Retarget an already-open reply composer, if there is one.
           const body = app.composer && app.composer.body;
           const open =
             app.composer &&
@@ -448,13 +465,6 @@ app.initializers.add('mtareq-nested-replies', () => {
 
       grouped.push(m('div.NestedRepliesReplyCard', { key: 'nestedRepliesReplyCard' }, [replySortVNode(), ...replyItems]));
 
-      // The native stream isn't at its end when only the first page is loaded,
-      // but the sorted view shows the whole discussion, so allow replying.
-      const canReply = currentDiscussion && (!app.session.user || currentDiscussion.canReply());
-      if (canReply) {
-        grouped.push(m('div.PostStream-item', { key: 'reply' }, m(ReplyPlaceholder, { discussion: currentDiscussion })));
-      }
-
       return m('div.PostStream', vnode.attrs, grouped);
     }
 
@@ -505,6 +515,31 @@ app.initializers.add('mtareq-nested-replies', () => {
     });
 
     m.redraw();
+  }
+
+  function closeInlineReply() {
+    inlineReply = null;
+    inlineDraft('');
+    forceRedraw();
+  }
+
+  // The sorted tree caches every post per discussion; drop the cache so a newly
+  // posted reply appears without a reload.
+  function refreshTree() {
+    allPosts = null;
+    loadAllPosts();
+  }
+
+  function openInlineReply(post) {
+    const id = String(post.id());
+
+    if (inlineReply && inlineReply.postId !== id && String(inlineDraft() || '').trim()) {
+      if (!confirm(app.translator.trans('mtareq-nested-replies.forum.reply_form_discard'))) return;
+    }
+
+    inlineReply = { postId: id, discussion: post.discussion(), mode: 'quick' };
+    inlineDraft('');
+    forceRedraw();
   }
 
   function toggleCollapse(post) {
@@ -626,6 +661,28 @@ app.initializers.add('mtareq-nested-replies', () => {
             20
           );
         });
+    }
+
+    if (inlineReply && inlineReply.postId === id) {
+      const depth = getDepth(post, settings.maxDepth, lookup);
+      const childDepth = Math.min(depth + 1, settings.maxDepth);
+
+      items.add(
+        'nestedRepliesInlineReply',
+        m(NestedRepliesInlineReply, {
+          post,
+          discussion: post.discussion(),
+          mode: inlineReply.mode,
+          indent: childDepth - depth,
+          draft: inlineDraft,
+          onCancel: closeInlineReply,
+          onSubmitted: () => {
+            closeInlineReply();
+            refreshTree();
+          },
+        }),
+        5
+      );
     }
 
     if (collapsed.has(id)) {

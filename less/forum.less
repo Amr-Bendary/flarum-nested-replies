@@ -567,6 +567,13 @@ a.NestedRepliesReplyTag {
   }
 }
 
+// In-card reply form, indented one level under the post being replied to.
+// --form-indent is 1 (child level) or 0 (at the depth cap).
+.NestedRepliesInlineReply {
+  margin-inline-start: calc(var(--form-indent, 1) * var(--indent));
+  margin-top: 8px;
+}
+
 @media @phone {
   // Core's page container keeps 15px side padding on phones. Tighten it on
   // discussion pages so the thread cards get the maximum reading width, while
