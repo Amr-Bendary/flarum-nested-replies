@@ -173,6 +173,28 @@ app.initializers.add('mtareq-nested-replies', () => {
     });
   }
 
+  // A successful composer submit (and the shell's own close) calls
+  // app.composer.hide(). The inline host renders inside a Post whose
+  // SubtreeRetainer caches it, so the host's onupdate cannot observe the change;
+  // hook hide() to clear the inline form and refresh the tree.
+  if (app.composer && typeof app.composer.hide === 'function') {
+    const originalHide = app.composer.hide;
+
+    app.composer.hide = function (...args) {
+      const wasInline = Boolean(inlineReply && inlineReply.mode === 'composer');
+      const result = originalHide.apply(this, args);
+
+      if (wasInline) {
+        inlineReply = null;
+        inlineDraft('');
+        forceRedraw();
+        refreshTree();
+      }
+
+      return result;
+    };
+  }
+
   // Flarum's discussion-list links resume at the first unread post. Optionally
   // open discussions at the top so readers start with the original post.
   if (settings.startAtFirstPost) {
@@ -427,6 +449,18 @@ app.initializers.add('mtareq-nested-replies', () => {
     m.redraw();
   }
 
+  // Core's infinite-scroll pagination anchors on `.PostStream-item[data-index]`
+  // elements it expects to own. While our tree renders the whole discussion that
+  // pagination must not run: core's anchorScroll throws when its selector finds
+  // nothing. Once the tree owns a stream, its loadPage becomes a no-op.
+  function guardStreamPagination(stream) {
+    if (!stream || stream.__nestedRepliesPaginationGuarded) return;
+    if (typeof stream.loadPage !== 'function') return;
+
+    stream.__nestedRepliesPaginationGuarded = true;
+    stream.loadPage = function () {};
+  }
+
   // Flarum's post stream is a flat list. A nested-reply layout wants the original
   // post in its own card and every reply inside a second card, so regroup the
   // rendered vnodes without touching core.
@@ -452,7 +486,10 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (allPosts && allPosts.length) {
       // The tree view renders the whole discussion from our own ordering, so
       // stop the native stream from paginating underneath it.
-      if (this.stream) this.stream.paused = true;
+      if (this.stream) {
+        this.stream.paused = true;
+        guardStreamPagination(this.stream);
+      }
 
       const { op, ordered } = buildReplyOrder(allPosts, sortMode);
 
@@ -763,6 +800,7 @@ app.initializers.add('mtareq-nested-replies', () => {
           mode: inlineReply.mode,
           indent: childDepth - depth,
           draft: inlineDraft,
+          onRedraw: forceRedraw,
           onCancel: closeInlineReply,
           onSubmitted: () => {
             closeInlineReply();

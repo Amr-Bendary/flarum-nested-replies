@@ -7,12 +7,12 @@ import NestedRepliesQuickReply from './NestedRepliesQuickReply';
 // depth cap); the LESS converts it to an inline-start margin.
 export default class NestedRepliesInlineReply extends Component {
   view() {
-    const { post, discussion, draft, mode, onCancel, onSubmitted } = this.attrs;
+    const { post, discussion, draft, mode, onCancel, onSubmitted, onRedraw } = this.attrs;
 
     return m(
       'div.NestedRepliesInlineReply',
       { style: `--form-indent: ${this.attrs.indent}` },
-      mode === 'composer' ? this.composerBody() : m(NestedRepliesQuickReply, { post, discussion, draft, onCancel, onSubmitted })
+      mode === 'composer' ? this.composerBody() : m(NestedRepliesQuickReply, { post, discussion, draft, onCancel, onSubmitted, onRedraw })
     );
   }
 

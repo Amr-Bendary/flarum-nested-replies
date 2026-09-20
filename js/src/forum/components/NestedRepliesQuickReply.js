@@ -12,6 +12,15 @@ export default class NestedRepliesQuickReply extends Component {
     this.saving = false;
     this.error = null;
     this.preview = false;
+    this.wasEmpty = !String(this.attrs.draft() || '').trim();
+  }
+
+  // The form renders inside a Post, whose SubtreeRetainer caches the post vnode;
+  // a plain m.redraw() does not reach this component. Ask the host to invalidate
+  // the enclosing post so state changes (preview, formatting, submit) render.
+  redraw() {
+    if (this.attrs.onRedraw) this.attrs.onRedraw();
+    else m.redraw();
   }
 
   oncreate(vnode) {
@@ -26,6 +35,7 @@ export default class NestedRepliesQuickReply extends Component {
 
     const result = applyMarkdown(textarea.value, textarea.selectionStart, textarea.selectionEnd, key);
     this.attrs.draft(result.value);
+    this.redraw();
 
     requestAnimationFrame(() => {
       const next = this.$('.NestedRepliesQuickReply-input')[0];
@@ -41,7 +51,7 @@ export default class NestedRepliesQuickReply extends Component {
 
     this.saving = true;
     this.error = null;
-    m.redraw();
+    this.redraw();
 
     app.store
       .createRecord('posts')
@@ -53,7 +63,7 @@ export default class NestedRepliesQuickReply extends Component {
       .catch(() => {
         this.saving = false;
         this.error = app.translator.trans('mtareq-nested-replies.forum.reply_form_error');
-        m.redraw();
+        this.redraw();
       });
   }
 
@@ -66,12 +76,24 @@ export default class NestedRepliesQuickReply extends Component {
       m('div.NestedRepliesQuickReply-tabs', [
         m(
           'button.NestedRepliesQuickReply-tab' + (this.preview ? '' : '.is-active'),
-          { type: 'button', onclick: () => (this.preview = false) },
+          {
+            type: 'button',
+            onclick: () => {
+              this.preview = false;
+              this.redraw();
+            },
+          },
           trans('reply_form_write')
         ),
         m(
           'button.NestedRepliesQuickReply-tab' + (this.preview ? '.is-active' : ''),
-          { type: 'button', onclick: () => (this.preview = true) },
+          {
+            type: 'button',
+            onclick: () => {
+              this.preview = true;
+              this.redraw();
+            },
+          },
           trans('reply_form_preview')
         ),
       ]),
@@ -84,7 +106,15 @@ export default class NestedRepliesQuickReply extends Component {
             placeholder,
             value: this.attrs.draft(),
             disabled: this.saving,
-            oninput: (e) => this.attrs.draft(e.target.value),
+            oninput: (e) => {
+              const value = e.target.value;
+              this.attrs.draft(value);
+              const empty = !String(value).trim();
+              if (empty !== this.wasEmpty) {
+                this.wasEmpty = empty;
+                this.redraw();
+              }
+            },
             onkeydown: (e) => {
               if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
