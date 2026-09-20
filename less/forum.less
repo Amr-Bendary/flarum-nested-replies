@@ -229,43 +229,10 @@
   }
 }
 
-// Right-to-left locales. Flarum puts dir="rtl" on the root element; the
-// indentation, avatar and badge spacing above use logical properties, so they
-// mirror on their own. The thread guide lines are physical background images,
-// so each depth's line is moved from the left edge to the right.
-[dir="rtl"] .NestedRepliesPost {
-  &[data-depth="1"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top";
-  }
-
-  &[data-depth="2"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top";
-  }
-
-  &[data-depth="3"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top";
-  }
-
-  &[data-depth="4"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top";
-  }
-
-  &[data-depth="5"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top";
-  }
-
-  &[data-depth="6"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top", ~"right calc(var(--indent) * 6 + 11px) top";
-  }
-
-  &[data-depth="7"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top", ~"right calc(var(--indent) * 6 + 11px) top", ~"right calc(var(--indent) * 7 + 11px) top";
-  }
-
-  &[data-depth="8"] {
-    background-position: ~"right calc(var(--indent) * 1 + 11px) top", ~"right calc(var(--indent) * 2 + 11px) top", ~"right calc(var(--indent) * 3 + 11px) top", ~"right calc(var(--indent) * 4 + 11px) top", ~"right calc(var(--indent) * 5 + 11px) top", ~"right calc(var(--indent) * 6 + 11px) top", ~"right calc(var(--indent) * 7 + 11px) top", ~"right calc(var(--indent) * 8 + 11px) top";
-  }
-}
+// Right-to-left locales are handled by Flarum's own RTL stylesheet, which
+// mirrors the physical guide-line background positions and translateX offsets
+// below. Do not add `[dir="rtl"]` overrides for them: Flarum mirrors them once
+// already, and a second mirror shifts the lines and controls off-centre.
 
 // Always-visible, inline action bar: vote, fold, Like, Reply and controls.
 .NestedRepliesPost {
@@ -419,9 +386,9 @@
   }
 }
 
-[dir="rtl"] .NestedRepliesCollapseToggle {
-  transform: ~"translateX(calc(var(--gutter) - var(--indent) - 1px))";
-}
+// Flarum compiles a dedicated RTL stylesheet that mirrors `translateX` and
+// `background-position` for us, so no `[dir="rtl"]` overrides are needed here:
+// adding them would mirror a second time and shift the control off the line.
 
 // "+ N more replies" line shown under a folded comment.
 .NestedRepliesMoreReplies {
@@ -945,10 +912,6 @@ a.NestedRepliesReplyTag {
     .icon {
       font-size: 8px;
     }
-  }
-
-  [dir="rtl"] .NestedRepliesPost .Post-actions .NestedRepliesCollapseToggle {
-    transform: ~"translateX(calc(var(--gutter) - var(--indent) - 4px))";
   }
 
   .NestedRepliesMoreReplies {
