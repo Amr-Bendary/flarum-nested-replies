@@ -574,6 +574,127 @@ a.NestedRepliesReplyTag {
   margin-top: 8px;
 }
 
+.NestedRepliesQuickReply {
+  border: 1px solid #dfe3e6;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  &-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px 0;
+  }
+
+  &-tab {
+    padding: 3px 6px 5px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #878a8c;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.is-active {
+      color: #4470e6;
+      border-bottom-color: #4470e6;
+    }
+  }
+
+  &-input {
+    display: block;
+    width: 100%;
+    min-height: 72px;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 0;
+    outline: none;
+    resize: vertical;
+    color: #1c1c1e;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  &-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 8px 6px;
+    border-top: 1px solid #f0f1f2;
+  }
+
+  &-format {
+    padding: 3px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #878a8c;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+      background: #f0f1f2;
+      color: #1c1c1e;
+    }
+  }
+
+  &-error {
+    padding: 0 10px 6px;
+    color: #d0021b;
+    font-size: 12px;
+  }
+
+  &-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 8px;
+    border-top: 1px solid #f0f1f2;
+    background: #fafbfc;
+  }
+
+  &-preview {
+    min-height: 72px;
+    padding: 10px;
+    font-size: 14px;
+    color: #1c1c1e;
+  }
+}
+
+.NestedRepliesInlineComposer {
+  border: 1px solid #dfe3e6;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+
+  &-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f1f2;
+  }
+
+  &-title {
+    color: #878a8c;
+    font-size: 12px;
+  }
+
+  // The core composer body already has its own padding; keep it inside the box.
+  .ComposerBody {
+    padding: 0 10px 10px;
+  }
+}
+
+[dir='rtl'] .NestedRepliesQuickReply-tab.is-active {
+  // The underline is a physical border; nothing to mirror, kept for clarity.
+}
+
 @media @phone {
   // Core's page container keeps 15px side padding on phones. Tighten it on
   // discussion pages so the thread cards get the maximum reading width, while
@@ -732,5 +853,21 @@ a.NestedRepliesReplyTag {
 
   .NestedRepliesReplySort {
     padding: 8px 0 10px;
+  }
+
+  .NestedRepliesInlineReply {
+    margin-top: 6px;
+  }
+
+  .NestedRepliesQuickReply {
+    &-input,
+    &-preview {
+      font-size: 13px;
+      min-height: 64px;
+    }
+
+    &-actions .Button {
+      min-height: 30px;
+    }
   }
 }
