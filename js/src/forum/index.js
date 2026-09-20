@@ -584,7 +584,7 @@ app.initializers.add('mtareq-nested-replies', () => {
       const isReply = body && body.attrs && body.attrs.discussion && !body.attrs.post;
 
       // An unrelated composer is open (e.g. editing a post): do not hijack it.
-      if (body && !isReply) {
+      if (app.composer && app.composer.isVisible() && !isReply) {
         inlineReply = previous;
         pendingParentId = null;
         forceRedraw();
