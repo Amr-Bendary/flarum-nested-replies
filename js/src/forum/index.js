@@ -55,6 +55,10 @@ app.initializers.add('mtareq-nested-replies', () => {
   // the editor (toggled by the composer's eye control).
   let composerPreview = false;
 
+  // The post currently being edited inline (replaces the native composer edit).
+  let editingPostId = null;
+  const editDraft = Stream('');
+
   // The reply just posted, highlighted briefly so its author can spot it.
   const HIGHLIGHT_DURATION = 3000;
   let highlightedPostId = null;
@@ -119,6 +123,7 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     const post = this.attrs.post;
     if (!post || post.isHidden()) return;
+    if (post.isDeleted && post.isDeleted()) return;
     if (app.session.user && !post.discussion().canReply()) return;
 
     items.add(
@@ -217,6 +222,19 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   if (app.composer && typeof app.composer.load === 'function') {
     override(app.composer, 'load', function (original, componentClass, attrs) {
+      // Intercept the native EditPostComposer and redirect to inline edit.
+      if (attrs && attrs.post && componentClass && componentClass.prototype) {
+        const name = componentClass.name || componentClass.displayName || '';
+        if (name === 'EditPostComposer' || (componentClass.prototype && typeof componentClass.prototype.onsubmit === 'function' && attrs.post)) {
+          const post = attrs.post;
+          if (app.session.user && typeof post.canEdit === 'function' && post.canEdit()) {
+            editPost(post);
+            // Return a no-op result — the native composer stays hidden.
+            return { then: (fn) => fn && fn() };
+          }
+        }
+      }
+
       const result = original.call(this, componentClass, attrs);
 
       const apply = () => {
@@ -820,6 +838,38 @@ app.initializers.add('mtareq-nested-replies', () => {
     inlineReply = { postId: id, discussion, mode: 'quick' };
     inlineDraft('');
     forceRedraw();
+
+    // Scroll the reply form into view after it renders.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const element = document.querySelector(`.PostStream-item[data-id="${id}"]`);
+        if (element && element.scrollIntoView) element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+    });
+  }
+
+  function editPost(post) {
+    if (!post) return;
+
+    // Close any open reply form first.
+    if (inlineReply) closeInlineReply();
+
+    const content = typeof post.content === 'function' ? post.content() : '';
+    editingPostId = String(post.id());
+    editDraft(content || '');
+    forceRedraw();
+
+    // Scroll the post into view so the edit form is visible.
+    requestAnimationFrame(() => {
+      const element = document.querySelector(`.PostStream-item[data-id="${editingPostId}"]`);
+      if (element && element.scrollIntoView) element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }
+
+  function cancelEdit() {
+    editingPostId = null;
+    editDraft('');
+    forceRedraw();
   }
 
   function toggleCollapse(post) {
@@ -889,6 +939,11 @@ app.initializers.add('mtareq-nested-replies', () => {
     const post = this.attrs.post;
     if (!post) return;
 
+    // Skip vote rail and collapse toggle on deleted / hidden posts — they
+    // should not be interactive and the card layout breaks around them.
+    if (post.isHidden && post.isHidden()) return;
+    if (post.isDeleted && post.isDeleted()) return;
+
     // Only offer collapse when the reply actually has replies. The backend
     // serializes the subtree count, so this is accurate even before every page
     // of nested replies has loaded.
@@ -908,6 +963,17 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (settings.showVotes) {
       items.add('nestedRepliesVotes', m(VoteRail, { post, adapter: votes }), 10);
     }
+  });
+
+  // Remove Like and Reply actions on deleted posts — they should not be
+  // interactive. This runs after core and extensions add their items.
+  extend(CommentPost.prototype, 'actionItems', function (items) {
+    const post = this.attrs.post;
+    if (!post) return;
+    if (!post.isDeleted || !post.isDeleted()) return;
+
+    items.delete('like');
+    items.delete('reply');
   });
 
   extend(CommentPost.prototype, 'footerItems', function (items) {
@@ -967,6 +1033,32 @@ app.initializers.add('mtareq-nested-replies', () => {
           onClosed: () => {
             closeInlineReply();
             refreshTree();
+          },
+        }),
+        5
+      );
+    }
+
+    // Inline edit form — rendered in the same position as the reply form but
+    // for editing an existing post.
+    if (editingPostId === id) {
+      const depth = getDepth(post, settings.maxDepth, lookup, settings.legacyMentions);
+      const childDepth = Math.min(depth + 1, settings.maxDepth);
+
+      items.add(
+        'nestedRepliesInlineEdit',
+        m(NestedRepliesInlineReply, {
+          post,
+          discussion: post.discussion(),
+          mode: 'quick',
+          indent: childDepth - depth,
+          draft: editDraft,
+          editMode: true,
+          onRedraw: forceRedraw,
+          onCancel: cancelEdit,
+          onSubmitted: () => {
+            cancelEdit();
+            refreshTree(post.id());
           },
         }),
         5

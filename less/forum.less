@@ -538,9 +538,10 @@ a.NestedRepliesReplyTag {
   display: none;
 }
 
-// flarum-likes' "You liked this." summary is hidden in the card layout.
+// flarum-likes' "You liked this." summary is restyled above in the
+// deleted-post section. Keep it visible so users see who liked a post.
 .NestedRepliesPost .Post-likedBy {
-  display: none;
+  // display: block is set in the deleted-post section below; nothing to hide.
 }
 
 // Reply card header: sort control.
@@ -942,5 +943,60 @@ a.NestedRepliesReplyTag {
     &-actions .Button {
       min-height: 30px;
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Deleted post styling
+// ---------------------------------------------------------------------------
+// Deleted posts shown to admins get a subtle red tint and the action bar is
+// simplified: no vote rail, no like, no reply — just the restore/delete
+// controls Flarum already provides.
+.NestedRepliesPost {
+  &.is-deleted,
+  &.is-hidden {
+    opacity: 0.55;
+
+    > .NestedRepliesPost-container {
+      background: rgba(220, 53, 69, 0.04);
+      border-left: 3px solid rgba(220, 53, 69, 0.35);
+    }
+
+    // Hide the action bar entirely — vote, like, reply, and collapse are
+    // meaningless on a deleted post. The three-dot dropdown with
+    // Restore / Delete permanently stays visible.
+    .Post-actions {
+      > ul > li:not(.Dropdown):not(.item-dropdown-trigger) {
+        display: none;
+      }
+    }
+
+    // The "This post was deleted" placeholder in the body should use the
+    // normal text colour so it stays readable against the tinted card.
+    .Post-body {
+      color: #666;
+      font-style: italic;
+    }
+  }
+}
+
+// Ensure the three-dot dropdown menu is not clipped by the card overflow and
+// positions itself correctly even at high nesting depths.
+.NestedRepliesPost .Dropdown-menu {
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+// The like-by summary line (users who liked the post).
+.NestedRepliesPost .Post-likedBy {
+  display: block;
+  padding: 4px 0 0;
+  font-size: 12px;
+  color: #878a8c;
+
+  .username {
+    font-weight: 600;
+    color: #1c1c1e;
   }
 }

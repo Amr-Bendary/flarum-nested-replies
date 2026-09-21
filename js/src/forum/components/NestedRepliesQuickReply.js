@@ -12,6 +12,7 @@ export default class NestedRepliesQuickReply extends Component {
     this.saving = false;
     this.error = null;
     this.preview = false;
+    this.editMode = Boolean(this.attrs.editMode);
     this.wasEmpty = !String(this.attrs.draft() || '').trim();
   }
 
@@ -53,9 +54,11 @@ export default class NestedRepliesQuickReply extends Component {
     this.error = null;
     this.redraw();
 
-    app.store
-      .createRecord('posts')
-      .save(buildReplyData(content, this.attrs.post.id(), this.attrs.discussion))
+    const savePromise = this.editMode
+      ? this.attrs.post.save({ content })
+      : app.store.createRecord('posts').save(buildReplyData(content, this.attrs.post.id(), this.attrs.discussion));
+
+    savePromise
       .then((post) => {
         this.saving = false;
         this.attrs.onSubmitted(post);
@@ -70,7 +73,10 @@ export default class NestedRepliesQuickReply extends Component {
   view() {
     const trans = (key, params) => app.translator.trans(`mtareq-nested-replies.forum.${key}`, params);
     const user = this.attrs.post.user();
-    const placeholder = user ? trans('reply_form_placeholder', { username: user.displayName() }) : trans('reply_form_placeholder_op');
+    const placeholder = this.editMode
+      ? trans('reply_form_placeholder_op')
+      : (user ? trans('reply_form_placeholder', { username: user.displayName() }) : trans('reply_form_placeholder_op'));
+    const submitLabel = this.editMode ? trans('edit_form_submit') : trans('reply_form_submit');
 
     return m('div.NestedRepliesQuickReply', [
       m('div.NestedRepliesQuickReply-tabs', [
@@ -99,8 +105,6 @@ export default class NestedRepliesQuickReply extends Component {
       ]),
       this.preview
         ? m(ComposerPostPreview, {
-            // `Post-body` so Flarum's post styles (code blocks, quotes, lists)
-            // apply to the rendered preview.
             className: 'Post-body NestedRepliesQuickReply-preview',
             composer: { isVisible: () => true, fields: { content: () => this.attrs.draft() } },
           })
@@ -140,7 +144,7 @@ export default class NestedRepliesQuickReply extends Component {
             disabled: this.saving || !String(this.attrs.draft() || '').trim(),
             onclick: () => this.submit(),
           },
-          trans('reply_form_submit')
+          submitLabel
         ),
         m(Button, { className: 'Button Button--link', onclick: () => this.attrs.onCancel() }, trans('reply_form_cancel')),
       ]),
