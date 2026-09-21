@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { getParentId, getDepth, getAncestorIds, isHidden, getReplyTarget, planSiblingFolding } from './threadDepths';
+import {
+  getParentId,
+  getDepth,
+  getAncestorIds,
+  isHidden,
+  getReplyTarget,
+  planSiblingFolding,
+  getLeadingMentionId,
+  isDerivedParent,
+} from './threadDepths';
 
 function build(pairs) {
   const posts = {};
@@ -267,5 +276,73 @@ describe('planSiblingFolding', () => {
     expect([...plan.hidden].sort()).toEqual(['4', '6', '7', '8']);
     expect(plan.moreAfter.has('7')).toBe(false);
     expect(plan.moreAfter.has('8')).toBe(false);
+  });
+});
+
+describe('getLeadingMentionId', () => {
+  it('reads a leading PostMention from the rendered content', () => {
+    const post = { contentHtml: () => '<p><a href="#" class="PostMention" data-id="4">admin</a> hello</p>' };
+    expect(getLeadingMentionId(post)).toBe('4');
+  });
+
+  it('ignores a mention that is embedded in text', () => {
+    const post = { contentHtml: () => '<p>Nested reply to <a class="PostMention" data-id="4">admin</a></p>' };
+    expect(getLeadingMentionId(post)).toBeNull();
+  });
+
+  it('falls back to a leading post mention in the raw content', () => {
+    expect(getLeadingMentionId({ content: () => '@"admin"#p7 hello' })).toBe('7');
+  });
+
+  it('returns null without a leading mention', () => {
+    expect(getLeadingMentionId({ contentHtml: () => '<p>hi</p>' })).toBeNull();
+    expect(getLeadingMentionId(null)).toBeNull();
+  });
+});
+
+describe('legacy mention parents', () => {
+  const makePost = (id, { parentId = null, leadingMention = null } = {}) => ({
+    id: () => String(id),
+    number: () => Number(id),
+    attribute: (name) => (name === 'replyToPostId' ? parentId : undefined),
+    contentHtml: () => (leadingMention ? `<p><a class="PostMention" data-id="${leadingMention}">x</a></p>` : '<p>x</p>'),
+    user: () => null,
+  });
+
+  it('uses the leading mention as the parent only when enabled', () => {
+    const post = makePost(8, { leadingMention: 7 });
+    expect(getParentId(post, false)).toBeNull();
+    expect(getParentId(post, true)).toBe('7');
+    expect(isDerivedParent(post, true)).toBe(true);
+  });
+
+  it('prefers the stored parent over a mention', () => {
+    const post = makePost(8, { parentId: 3, leadingMention: 7 });
+    expect(getParentId(post, true)).toBe('3');
+    expect(isDerivedParent(post, true)).toBe(false);
+  });
+
+  it('caps a legacy reply at depth 1 and does not stack', () => {
+    const posts = {
+      1: makePost(1),
+      2: makePost(2, { leadingMention: 1 }),
+      3: makePost(3, { leadingMention: 2 }),
+    };
+    const lookup = (id) => posts[String(id)] || null;
+
+    expect(getDepth(posts['2'], 10, lookup, true)).toBe(1);
+    expect(getDepth(posts['3'], 10, lookup, true)).toBe(1);
+    expect(getAncestorIds(posts['3'], lookup, true)).toEqual(['2']);
+  });
+
+  it('lets a stored reply nest below a legacy reply', () => {
+    const posts = {
+      1: makePost(1),
+      2: makePost(2, { leadingMention: 1 }),
+      3: makePost(3, { parentId: 2 }),
+    };
+    const lookup = (id) => posts[String(id)] || null;
+
+    expect(getDepth(posts['3'], 10, lookup, true)).toBe(2);
   });
 });

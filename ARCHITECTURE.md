@@ -95,17 +95,25 @@ and `userVote` attributes flow back to the client in the response.
 back to the initial JSON:API payload (`app.data.resources`) because Flarum runs
 initializers before `app.forum` is assigned.
 
+When `flarum/mentions` is present, the initializer also blanks the **post**
+mentionable's `initialResults()`/`search()`, so the `@` autocomplete suggests users
+only. Programmatic post mentions (quoting) still work, and the reply parent always
+comes from the post whose Reply button was clicked.
+
 ### Reply tree (`forum/utils/threadDepths.js`)
 
 Pure, dependency-injected functions — the only part covered by fast unit tests:
 
-- `getParentId(post)` — reads the stored `replyToPostId` attribute; returns null for
-  top-level posts.
-- `getDepth(post, maxDepth, lookup)` — walks parents, never counting the original
-  post as a level, and caps at `maxDepth`. Cycle-safe.
+- `getParentId(post, legacyMentions)` — reads the stored `replyToPostId` attribute;
+  returns null for top-level posts. With `legacyMentions` on and no stored parent, falls
+  back to `getLeadingMentionId(post)` (a post mention at the very start of the content),
+  which re-nests pre-existing replies. `isDerivedParent` reports that case.
+- `getDepth(post, maxDepth, lookup, legacyMentions)` — walks parents, never counting the
+  original post as a level, and caps at `maxDepth`. Cycle-safe. A legacy-derived link is
+  capped at one level and never stacks.
 - `getAncestorIds` / `isHidden` — used to hide descendants of a collapsed post.
-- `getReplyTarget(post, getPostById)` — resolves the stored parent and its author for
-  the header tag.
+- `getReplyTarget(post, getPostById, legacyMentions)` — resolves the parent and its author
+  for the header tag.
 - `planSiblingFolding(posts, options)` — given the replies in render order, works out
   which sibling groups fold, the hidden ids (folded replies and their subtrees), and
   where each "Show more replies" control anchors so it lines up with the depth of the
@@ -197,6 +205,7 @@ settings.js readSettings(app)        -> typed settings object for the UI
 | `nestedRepliesShowScrubber` | `mtareq-nested-replies.show_scrubber` | bool |
 | `nestedRepliesReplyForm` | `mtareq-nested-replies.reply_form` | string (`quick` \| `composer`) |
 | `nestedRepliesHighlightColor` | `mtareq-nested-replies.highlight_color` | string (hex) |
+| `nestedRepliesLegacyMentions` | `mtareq-nested-replies.legacy_mentions` | bool |
 
 ## Dependencies
 

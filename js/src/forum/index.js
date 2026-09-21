@@ -11,7 +11,7 @@ import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
 import Stream from 'flarum/common/utils/Stream';
 import { readSettings } from '../common/settings';
 import { createVoteAdapter } from '../common/voteAdapter';
-import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId, planSiblingFolding } from './utils/threadDepths';
+import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId, isDerivedParent, planSiblingFolding } from './utils/threadDepths';
 import VoteRail from './components/VoteRail';
 import CollapseToggle from './components/CollapseToggle';
 import MoreReplies from './components/MoreReplies';
@@ -98,6 +98,18 @@ app.initializers.add('mtareq-nested-replies', () => {
       openInlineReply(op);
       return undefined;
     };
+  }
+
+  // Keep the @ autocomplete to users only. Flarum's post mentionable offers the
+  // discussion's posts as `@"name"#pN`, which is confusing; stop it suggesting
+  // anything while leaving programmatic post mentions (quoting) intact.
+  if (app.mentionFormats && typeof app.mentionFormats.mentionable === 'function') {
+    const postMentionable = app.mentionFormats.mentionable('post');
+
+    if (postMentionable) {
+      postMentionable.initialResults = () => [];
+      postMentionable.search = () => Promise.resolve([]);
+    }
   }
 
   // Ensure every post has a Reply action. flarum/mentions supplies one when it
@@ -299,10 +311,10 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (!post || !element) return;
 
     const id = String(post.id());
-    const depth = getDepth(post, settings.maxDepth, lookup);
+    const depth = getDepth(post, settings.maxDepth, lookup, settings.legacyMentions);
     // A reply is hidden when the reader collapsed an ancestor or when a sibling
     // group above it is folded behind a "Show more replies" control.
-    const hidden = isHidden(post, collapsed, lookup) || foldPlan.hidden.has(id);
+    const hidden = isHidden(post, collapsed, lookup, settings.legacyMentions) || foldPlan.hidden.has(id);
     const op = isOriginalPost(post);
 
     element.classList.add('NestedRepliesPost');
@@ -340,10 +352,11 @@ app.initializers.add('mtareq-nested-replies', () => {
     syncLikedClass(element, post);
 
     // The reply target is shown as a tag in the header, so hide only the inline
-    // mention that points at the stored parent.
-    if (settings.showReplyTag) {
-      const parentId = getParentId(post);
-      const target = parentId ? getReplyTarget(post, lookup) : null;
+    // mention that points at the stored parent. A legacy-derived parent is the
+    // mention itself, so hide it too even when the tag is off.
+    if (settings.showReplyTag || isDerivedParent(post, settings.legacyMentions)) {
+      const parentId = getParentId(post, settings.legacyMentions);
+      const target = parentId ? getReplyTarget(post, lookup, settings.legacyMentions) : null;
 
       if (parentId && target && target.name) {
         const body = element.querySelector('.Post-body') || element.querySelector('.Post-content');
@@ -395,7 +408,7 @@ app.initializers.add('mtareq-nested-replies', () => {
     posts.forEach((post) => {
       if (op && post === op) return;
 
-      const parentId = getParentId(post);
+      const parentId = getParentId(post, settings.legacyMentions);
 
       if (parentId && parentId !== opId && byId.has(parentId)) {
         const list = children.get(parentId) || [];
@@ -570,6 +583,7 @@ app.initializers.add('mtareq-nested-replies', () => {
         lookup,
         visibleReplies: settings.visibleReplies,
         expandedParents: expandedGroups,
+        legacyMentions: settings.legacyMentions,
       });
 
       const chrono = [...allPosts].sort((a, b) => Number(a.number()) - Number(b.number()));
@@ -610,6 +624,7 @@ app.initializers.add('mtareq-nested-replies', () => {
       lookup,
       visibleReplies: settings.visibleReplies,
       expandedParents: expandedGroups,
+      legacyMentions: settings.legacyMentions,
     });
 
     const grouped = [...before, m('div.NestedRepliesThreadCard', { key: 'nestedRepliesThreadCard' }, op)];
@@ -691,7 +706,7 @@ app.initializers.add('mtareq-nested-replies', () => {
       expandedGroups.add(id);
 
       const post = lookup(id);
-      id = post ? getParentId(post) : null;
+      id = post ? getParentId(post, settings.legacyMentions) : null;
     }
   }
 
@@ -852,7 +867,7 @@ app.initializers.add('mtareq-nested-replies', () => {
     if (!settings.showReplyTag) return;
 
     const post = this.attrs.post;
-    const target = getReplyTarget(post, lookup);
+    const target = getReplyTarget(post, lookup, settings.legacyMentions);
 
     if (!target || !target.name) return;
 
@@ -906,7 +921,7 @@ app.initializers.add('mtareq-nested-replies', () => {
     // another group's kept branch, so render deepest-first.
     const groups = foldPlan.moreAfter.get(id);
     if (groups && groups.length) {
-      const actualDepth = getDepth(post, settings.maxDepth, lookup);
+      const actualDepth = getDepth(post, settings.maxDepth, lookup, settings.legacyMentions);
 
       [...groups]
         .sort((a, b) => b.targetDepth - a.targetDepth)
@@ -929,7 +944,7 @@ app.initializers.add('mtareq-nested-replies', () => {
     }
 
     if (inlineReply && inlineReply.postId === id) {
-      const depth = getDepth(post, settings.maxDepth, lookup);
+      const depth = getDepth(post, settings.maxDepth, lookup, settings.legacyMentions);
       const childDepth = Math.min(depth + 1, settings.maxDepth);
 
       items.add(

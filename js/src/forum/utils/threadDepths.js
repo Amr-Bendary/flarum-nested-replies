@@ -1,4 +1,31 @@
-export function getParentId(post) {
+// The post mention that leads a post's content, if any. Flarum's reply action
+// inserts the reply-target mention at the very start of the content, so a
+// leading post mention is a reliable parent hint for legacy posts (which have no
+// stored replyToPostId). A mention embedded in text is ignored.
+export function getLeadingMentionId(post) {
+  if (!post) return null;
+
+  const html = typeof post.contentHtml === 'function' ? post.contentHtml() : null;
+  if (typeof html === 'string' && html) {
+    // Allow a wrapping <p> and leading whitespace before the mention anchor.
+    const tag = html.match(/^\s*(?:<p\b[^>]*>\s*)?<a\b([^>]*)>/i);
+    if (tag && /\bclass\s*=\s*"[^"]*\bPostMention\b/i.test(tag[1])) {
+      const id = tag[1].match(/\bdata-id\s*=\s*"(\d+)"/i);
+      if (id) return id[1];
+    }
+  }
+
+  // Fall back to the raw content: `@"name"#pN ...`.
+  const raw = typeof post.content === 'function' ? post.content() : null;
+  if (typeof raw === 'string') {
+    const match = raw.match(/^\s*@"[^"]*"#p(\d+)/);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
+export function getStoredParentId(post) {
   if (!post || typeof post.attribute !== 'function') return null;
 
   const parentId = post.attribute('replyToPostId');
@@ -7,8 +34,24 @@ export function getParentId(post) {
   return String(parentId);
 }
 
-export function getReplyTarget(post, getPostById) {
-  const parentId = getParentId(post);
+export function getParentId(post, legacyMentions = false) {
+  const stored = getStoredParentId(post);
+  if (stored) return stored;
+  if (!legacyMentions) return null;
+
+  return getLeadingMentionId(post);
+}
+
+// True when a post's parent comes from a legacy mention rather than the stored
+// replyToPostId. Legacy links are capped to a single level of nesting.
+export function isDerivedParent(post, legacyMentions = false) {
+  if (!legacyMentions || getStoredParentId(post)) return false;
+
+  return getLeadingMentionId(post) != null;
+}
+
+export function getReplyTarget(post, getPostById, legacyMentions = false) {
+  const parentId = getParentId(post, legacyMentions);
   if (!parentId) return null;
 
   const parent = getPostById ? getPostById(parentId) : null;
@@ -20,7 +63,7 @@ export function getReplyTarget(post, getPostById) {
   return { id: parentId, name, post: parent };
 }
 
-export function getAncestorIds(post, getPostById) {
+export function getAncestorIds(post, getPostById, legacyMentions = false) {
   const ids = [];
   const seen = new Set();
   let current = post;
@@ -30,10 +73,14 @@ export function getAncestorIds(post, getPostById) {
     if (seen.has(currentId)) break;
     seen.add(currentId);
 
-    const parentId = getParentId(current);
+    const parentId = getParentId(current, legacyMentions);
     if (!parentId) break;
 
     ids.push(parentId);
+
+    // Legacy links never stack, so the chain stops after one derived hop.
+    if (isDerivedParent(current, legacyMentions)) break;
+
     current = getPostById ? getPostById(parentId) : null;
   }
 
@@ -44,7 +91,7 @@ export function isOriginalPost(post) {
   return Boolean(post && typeof post.number === 'function' && post.number() === 1);
 }
 
-export function getDepth(post, maxDepth = Infinity, getPostById = null) {
+export function getDepth(post, maxDepth = Infinity, getPostById = null, legacyMentions = false) {
   if (!post) return 0;
 
   let depth = 0;
@@ -56,7 +103,13 @@ export function getDepth(post, maxDepth = Infinity, getPostById = null) {
     if (seen.has(currentId)) break;
     seen.add(currentId);
 
-    const parentId = getParentId(current);
+    // A legacy-derived reply is one level deep and never stacks further.
+    if (isDerivedParent(current, legacyMentions)) {
+      depth += 1;
+      break;
+    }
+
+    const parentId = getParentId(current, legacyMentions);
     if (!parentId) break;
 
     const parent = getPostById ? getPostById(parentId) : null;
@@ -72,8 +125,8 @@ export function getDepth(post, maxDepth = Infinity, getPostById = null) {
   return depth;
 }
 
-export function isHidden(post, collapsedSet, getPostById) {
-  return getAncestorIds(post, getPostById).some((id) => collapsedSet.has(id));
+export function isHidden(post, collapsedSet, getPostById, legacyMentions = false) {
+  return getAncestorIds(post, getPostById, legacyMentions).some((id) => collapsedSet.has(id));
 }
 
 // Reddit-style sibling folding. Replies stay unfolded by default, but when a
@@ -89,6 +142,7 @@ export function planSiblingFolding(posts, options = {}) {
   const lookup = typeof options.lookup === 'function' ? options.lookup : () => null;
   const visibleReplies = Math.max(1, Number(options.visibleReplies) || 1);
   const expanded = options.expandedParents instanceof Set ? options.expandedParents : new Set();
+  const legacyMentions = options.legacyMentions === true;
 
   const resolve = (id) => {
     const found = lookup(id);
@@ -99,7 +153,7 @@ export function planSiblingFolding(posts, options = {}) {
   const childrenByParent = new Map();
 
   list.forEach((post) => {
-    const parentId = getParentId(post);
+    const parentId = getParentId(post, legacyMentions);
     if (!parentId) return;
 
     const parent = resolve(parentId);
@@ -139,7 +193,7 @@ export function planSiblingFolding(posts, options = {}) {
 
       if (id === String(branchRootId)) return true;
 
-      const parentId = getParentId(current);
+      const parentId = getParentId(current, legacyMentions);
       current = parentId ? resolve(parentId) : null;
     }
 
@@ -186,7 +240,7 @@ export function planSiblingFolding(posts, options = {}) {
       parentId,
       count,
       // Depth the hidden replies belong to, so the control can line up with it.
-      targetDepth: getDepth(branchRoot, Infinity, resolve),
+      targetDepth: getDepth(branchRoot, Infinity, resolve, legacyMentions),
     });
     moreAfter.set(key, entries);
   });

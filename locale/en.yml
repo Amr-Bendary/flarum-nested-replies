@@ -14,6 +14,7 @@ mtareq-nested-replies:
       reply_form_quick: Quick reply (basic formatting + preview)
       reply_form_composer: Full composer (embedded in card)
       highlight_color_label: New reply highlight color
+      legacy_mentions_label: Nest legacy replies from their leading post mention
   forum:
     collapse: Collapse replies
     expand: Expand replies

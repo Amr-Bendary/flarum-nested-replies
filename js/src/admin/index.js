@@ -61,5 +61,10 @@ app.initializers.add('mtareq-nested-replies', () => {
       setting: 'mtareq-nested-replies.highlight_color',
       type: 'color',
       label: app.translator.trans('mtareq-nested-replies.admin.settings.highlight_color_label'),
+    })
+    .registerSetting({
+      setting: 'mtareq-nested-replies.legacy_mentions',
+      type: 'boolean',
+      label: app.translator.trans('mtareq-nested-replies.admin.settings.legacy_mentions_label'),
     });
 });

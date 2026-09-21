@@ -14,6 +14,7 @@ mtareq-nested-replies:
       reply_form_quick: رد سريع (تنسيق أساسي ومعاينة)
       reply_form_composer: المحرر الكامل (داخل البطاقة)
       highlight_color_label: لون تمييز الرد الجديد
+      legacy_mentions_label: تجميع الردود القديمة من إشارة المنشور في بدايتها
   forum:
     collapse: طيّ الردود
     expand: توسيع الردود
