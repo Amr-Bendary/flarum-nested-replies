@@ -985,6 +985,10 @@ a.NestedRepliesReplyTag {
   }
 }
 
+.NestedRepliesPost.is-deleted > .NestedRepliesPost-container, .NestedRepliesPost.is-hidden > .NestedRepliesPost-container, .NestedRepliesPost.Post--hidden:not(.revealContent) > .NestedRepliesPost-container {
+  border-left: none !important;
+}
+
 // Ensure the three-dot dropdown menu is not clipped by the card overflow and
 // positions itself correctly even at high nesting depths.
 .NestedRepliesPost .Dropdown-menu {
