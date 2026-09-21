@@ -1,4 +1,5 @@
 import { extend, override } from 'flarum/common/extend';
+import Link from 'flarum/common/components/Link';
 import app from 'flarum/forum/app';
 import icon from 'flarum/common/helpers/icon';
 import Button from 'flarum/common/components/Button';
@@ -923,10 +924,33 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     items.add(
       'nestedRepliesReplyTag',
-      m('a.NestedRepliesReplyTag', { href: target.post ? app.route.post(target.post) : '#', title: target.name }, [
-        icon('fas fa-reply'),
-        m('span.NestedRepliesReplyTag-label', app.translator.trans('mtareq-nested-replies.forum.reply_to', { username: target.name })),
-      ]),
+      m(
+        Link,
+        {
+          className: 'NestedRepliesReplyTag',
+          href: target.post ? app.route.post(target.post) : '#',
+          title: target.name,
+          onclick: (e) => {
+            if (target.post) {
+              const targetEl =
+                document.querySelector(`.PostStream-item[data-id="${target.post.id()}"]`) ||
+                document.querySelector(`[data-id="${target.post.id()}"]`);
+              if (targetEl) {
+                e.preventDefault();
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetEl.classList.remove('pulsate');
+                void targetEl.offsetWidth;
+                targetEl.classList.add('pulsate');
+                setTimeout(() => targetEl.classList.remove('pulsate'), 2000);
+              }
+            }
+          },
+        },
+        [
+          icon('fas fa-reply'),
+          m('span.NestedRepliesReplyTag-label', app.translator.trans('mtareq-nested-replies.forum.reply_to', { username: target.name })),
+        ]
+      ),
       95
     );
   });
