@@ -21,8 +21,8 @@
 // Card shared by the original post and the reply tree.
 .NestedRepliesThreadCard,
 .NestedRepliesReplyCard {
-  background: #fff;
-  border: 1px solid #edeff1;
+  background: var(--body-bg-light, #fff);
+  border: 1px solid var(--control-bg-shaded, #edeff1);
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   padding: 16px 20px;
@@ -49,7 +49,7 @@
 // Divider between top-level replies only. Nested replies are separated by
 // their indentation thread line instead, so they never get a divider.
 .NestedRepliesReplyCard > .PostStream-item.is-top-level {
-  border-top: 1px solid #edeff1;
+  border-top: 1px solid var(--control-bg-shaded, #edeff1);
   margin-top: 16px;
   padding-top: 16px;
 
@@ -281,10 +281,10 @@
       min-height: 28px;
       box-sizing: border-box;
       padding: 3px 10px;
-      border: 1px solid #edeff1;
+      border: 1px solid var(--control-bg-shaded, #edeff1);
       border-radius: 999px;
-      background: #f6f7f8 !important;
-      color: #878a8c;
+      background: var(--control-bg, #f6f7f8) !important;
+      color: var(--muted-color, #878a8c);
       font-size: 12px;
       font-weight: 600;
       line-height: 20px;
@@ -292,8 +292,8 @@
       &:hover,
       &:focus,
       &:active {
-        background: #eef1f3 !important;
-        color: #1c1c1c;
+        background: var(--control-bg-hover, #eef1f3) !important;
+        color: var(--text-color, #1c1c1c);
         box-shadow: none;
       }
     }
@@ -320,10 +320,10 @@
   min-height: 28px;
   box-sizing: border-box;
   padding: 2px 10px;
-  border: 1px solid #edeff1;
+  border: 1px solid var(--control-bg-shaded, #edeff1);
   border-radius: 999px;
-  background: #f6f7f8;
-  color: #878a8c;
+  background: var(--control-bg, #f6f7f8);
+  color: var(--muted-color, #878a8c);
 
   &.is-disabled {
     opacity: 0.5;
@@ -343,7 +343,7 @@
   }
 
   &:hover:not(:disabled) {
-    color: #1c1c1c;
+    color: var(--text-color, #1c1c1c);
   }
 
   &.is-active {
@@ -356,7 +356,7 @@
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  color: #1c1c1c;
+  color: var(--text-color, #1c1c1c);
 }
 
 // Reddit-style circular fold/unfold button on a comment.
@@ -398,8 +398,8 @@
   margin-top: 6px;
   padding: 3px 10px 3px 8px;
   border-radius: 999px;
-  background: rgba(77, 105, 142, 0.1);
-  color: #1c1c1e;
+  background: var(--control-bg, rgba(77, 105, 142, 0.1));
+  color: var(--text-color, #1c1c1e);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -550,16 +550,16 @@ a.NestedRepliesReplyTag {
   align-items: center;
   gap: 6px;
   padding: 12px 0;
-  border-bottom: 1px solid #edeff1;
+  border-bottom: 1px solid var(--control-bg-shaded, #edeff1);
   font-size: 13px;
-  color: #878a8c;
+  color: var(--muted-color, #878a8c);
 
   select {
     padding: 2px 6px;
-    border: 1px solid #edeff1;
+    border: 1px solid var(--control-bg-shaded, #edeff1);
     border-radius: 6px;
-    background: #f6f7f8;
-    color: #1c1c1c;
+    background: var(--control-bg, #f6f7f8);
+    color: var(--text-color, #1c1c1c);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -586,9 +586,9 @@ a.NestedRepliesReplyTag {
 }
 
 .NestedRepliesQuickReply {
-  border: 1px solid #dfe3e6;
+  border: 1px solid var(--control-bg-shaded, #dfe3e6);
   border-radius: 8px;
-  background: #fff;
+  background: var(--body-bg-light, #fff);
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 
@@ -603,14 +603,14 @@ a.NestedRepliesReplyTag {
     border: 0;
     border-bottom: 2px solid transparent;
     background: transparent;
-    color: #878a8c;
+    color: var(--muted-color, #878a8c);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
 
     &.is-active {
-      color: #4470e6;
-      border-bottom-color: #4470e6;
+      color: var(--primary-color, #4470e6);
+      border-bottom-color: var(--primary-color, #4470e6);
     }
   }
 
@@ -623,7 +623,8 @@ a.NestedRepliesReplyTag {
     border: 0;
     outline: none;
     resize: vertical;
-    color: #1c1c1e;
+    background: transparent;
+    color: var(--text-color, #1c1c1e);
     font: inherit;
     font-size: 14px;
     line-height: 1.5;
@@ -634,7 +635,7 @@ a.NestedRepliesReplyTag {
     align-items: center;
     gap: 2px;
     padding: 2px 8px 6px;
-    border-top: 1px solid #f0f1f2;
+    border-top: 1px solid var(--control-bg-shaded, #f0f1f2);
   }
 
   &-format {
@@ -642,14 +643,14 @@ a.NestedRepliesReplyTag {
     border: 0;
     border-radius: 5px;
     background: transparent;
-    color: #878a8c;
+    color: var(--muted-color, #878a8c);
     font-size: 12px;
     cursor: pointer;
 
     &:hover,
     &:focus {
-      background: #f0f1f2;
-      color: #1c1c1e;
+      background: var(--control-bg, #f0f1f2);
+      color: var(--text-color, #1c1c1e);
     }
   }
 
@@ -664,22 +665,22 @@ a.NestedRepliesReplyTag {
     align-items: center;
     gap: 8px;
     padding: 6px 8px 8px;
-    border-top: 1px solid #f0f1f2;
-    background: #fafbfc;
+    border-top: 1px solid var(--control-bg-shaded, #f0f1f2);
+    background: var(--body-bg-shaded, #fafbfc);
   }
 
   &-preview {
     min-height: 72px;
     padding: 10px;
     font-size: 14px;
-    color: #1c1c1e;
+    color: var(--text-color, #1c1c1e);
   }
 }
 
 .NestedRepliesInlineComposer {
-  border: 1px solid #dfe3e6;
+  border: 1px solid var(--control-bg-shaded, #dfe3e6);
   border-radius: 8px;
-  background: #fff;
+  background: var(--body-bg-light, #fff);
   overflow: hidden;
 
   &-head {
@@ -688,17 +689,17 @@ a.NestedRepliesReplyTag {
     justify-content: space-between;
     gap: 8px;
     padding: 8px 10px;
-    border-bottom: 1px solid #f0f1f2;
+    border-bottom: 1px solid var(--control-bg-shaded, #f0f1f2);
   }
 
   &-title {
-    color: #878a8c;
+    color: var(--muted-color, #878a8c);
     font-size: 12px;
   }
 
   &-loading {
     padding: 14px 12px;
-    color: #878a8c;
+    color: var(--muted-color, #878a8c);
     font-size: 13px;
   }
 
@@ -1002,10 +1003,174 @@ a.NestedRepliesReplyTag {
   display: block;
   padding: 4px 0 0;
   font-size: 12px;
-  color: #878a8c;
+  color: var(--muted-color, #878a8c);
 
   .username {
     font-weight: 600;
-    color: #1c1c1e;
+    color: var(--text-color, #1c1c1e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dark mode overrides
+// ---------------------------------------------------------------------------
+html[data-itqan-theme='dark'],
+body.dark,
+[data-theme='dark'] {
+  .NestedRepliesThreadCard,
+  .NestedRepliesReplyCard {
+    background: var(--body-bg-light, #1d1e22);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .NestedRepliesReplyCard > .PostStream-item.is-top-level {
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .NestedRepliesPost--hasMore > .NestedRepliesPost-container .Post-footer {
+    background: var(--body-bg-light, #1d1e22);
+  }
+
+  .NestedRepliesReplySort {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: var(--muted-color, #a0a0a0);
+
+    select {
+      background: var(--control-bg, #2a2b30);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--text-color, #e0e0e0);
+    }
+  }
+
+  .NestedRepliesPost .Post-likedBy {
+    color: var(--muted-color, #a0a0a0);
+
+    .username {
+      color: var(--text-color, #e0e0e0) !important;
+    }
+  }
+
+  .NestedRepliesPost .Post-actions {
+    .Button:not(.NestedRepliesCollapseToggle) {
+      background: var(--control-bg, rgba(255, 255, 255, 0.08)) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      color: var(--muted-color, #a0a0a0) !important;
+
+      &:hover,
+      &:focus,
+      &:active {
+        background: rgba(255, 255, 255, 0.16) !important;
+        color: var(--text-color, #ffffff) !important;
+      }
+    }
+  }
+
+  .NestedRepliesVoteRail {
+    background: var(--control-bg, rgba(255, 255, 255, 0.08));
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--muted-color, #a0a0a0);
+  }
+
+  .NestedRepliesVoteScore {
+    color: var(--text-color, #e0e0e0);
+  }
+
+  .NestedRepliesVoteButton {
+    &:hover:not(:disabled) {
+      color: var(--text-color, #ffffff);
+    }
+  }
+
+  .NestedRepliesMoreReplies {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary-color, #8ab4f8) !important;
+
+    &:hover,
+    &:focus {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--primary-color, #a8c7fa) !important;
+    }
+  }
+
+  .NestedRepliesShowMore {
+    background: var(--body-bg-light, #1d1e22) !important;
+    color: var(--primary-color, #8ab4f8);
+
+    &-label,
+    &-icon .icon {
+      color: var(--primary-color, #8ab4f8);
+    }
+
+    &-toggle {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--muted-color, #a0a0a0);
+    }
+
+    &:hover,
+    &:focus {
+      background: rgba(255, 255, 255, 0.12) !important;
+      color: var(--primary-color, #a8c7fa);
+
+      .NestedRepliesShowMore-label,
+      .NestedRepliesShowMore-icon .icon {
+        color: var(--primary-color, #a8c7fa);
+      }
+    }
+  }
+
+  a.NestedRepliesReplyTag {
+    background: rgba(46, 125, 50, 0.25);
+    color: #a5d6a7;
+
+    .icon {
+      color: #81c784;
+    }
+  }
+
+  .NestedRepliesQuickReply,
+  .NestedRepliesInlineComposer {
+    background: var(--body-bg-light, #222327);
+    border-color: rgba(255, 255, 255, 0.12);
+
+    .NestedRepliesQuickReply-input,
+    .NestedRepliesQuickReply-preview,
+    .NestedRepliesInlineComposer-preview {
+      color: var(--text-color, #e0e0e0);
+    }
+
+    .NestedRepliesQuickReply-toolbar,
+    .NestedRepliesQuickReply-actions,
+    .NestedRepliesInlineComposer-head {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .NestedRepliesQuickReply-actions {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .NestedRepliesQuickReply-format {
+      color: var(--muted-color, #a0a0a0);
+
+      &:hover,
+      &:focus {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-color, #ffffff);
+      }
+    }
+
+    .NestedRepliesQuickReply-tab {
+      color: var(--muted-color, #a0a0a0);
+
+      &.is-active {
+        color: var(--primary-color, #8ab4f8);
+        border-bottom-color: var(--primary-color, #8ab4f8);
+      }
+    }
+
+    .NestedRepliesInlineComposer-title,
+    .NestedRepliesInlineComposer-loading {
+      color: var(--muted-color, #a0a0a0);
+    }
   }
 }

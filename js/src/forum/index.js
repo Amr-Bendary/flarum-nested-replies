@@ -230,6 +230,7 @@ app.initializers.add('mtareq-nested-replies', () => {
           const post = attrs.post;
           if (app.session.user && typeof post.canEdit === 'function' && post.canEdit()) {
             editPost(post);
+            if (typeof this.hide === 'function') this.hide();
             // Return a no-op result — the native composer stays hidden.
             return { then: (fn) => fn && fn() };
           }
@@ -670,7 +671,7 @@ app.initializers.add('mtareq-nested-replies', () => {
   }
 
   function isInlineComposer() {
-    return Boolean(inlineReply && inlineReply.mode === 'composer' && app.composer && app.composer.isVisible());
+    return Boolean((inlineReply && inlineReply.mode === 'composer' && app.composer && app.composer.isVisible()) || editingPostId !== null);
   }
 
   // While the reply form is inline, hide the fixed composer shell and disable
@@ -854,6 +855,10 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     // Close any open reply form first.
     if (inlineReply) closeInlineReply();
+
+    if (app.composer && typeof app.composer.hide === 'function') {
+      app.composer.hide();
+    }
 
     const content = typeof post.content === 'function' ? post.content() : '';
     editingPostId = String(post.id());
