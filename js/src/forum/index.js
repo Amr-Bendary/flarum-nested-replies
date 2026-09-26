@@ -435,6 +435,18 @@ app.initializers.add('mtareq-nested-replies', () => {
     items.add('nestedRepliesVote', m(VoteRail, { post: firstPost, adapter: votes }), 110);
   });
 
+  // DiscussionListItem caches its subtree and only rebuilds on read-state
+  // changes, so key it on the first post's vote too. Without this a vote
+  // updates the model but the row keeps the old score until a full re-render.
+  extend(DiscussionListItem.prototype, 'oninit', function () {
+    this.subtree.check(() => {
+      const discussion = this.attrs.discussion;
+      const firstPost = discussion && typeof discussion.firstPost === 'function' ? discussion.firstPost() : null;
+
+      return firstPost ? `${firstPost.attribute('votes')}:${firstPost.attribute('userVote')}` : '';
+    });
+  });
+
   function isLikedByMe(post) {
     if (!app.session.user || typeof post.likes !== 'function') return false;
 
