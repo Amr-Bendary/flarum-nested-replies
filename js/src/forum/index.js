@@ -392,6 +392,19 @@ app.initializers.add('mtareq-nested-replies', () => {
     });
   }
 
+  // Vote rail on the discussion list. It votes the discussion's first post — the
+  // same model the details page votes — so the two views stay in sync.
+  extend(DiscussionListItem.prototype, 'contentItems', function (items) {
+    if (!settings.showVotes) return;
+
+    const discussion = this.attrs.discussion;
+    const firstPost = discussion && typeof discussion.firstPost === 'function' ? discussion.firstPost() : null;
+
+    if (!firstPost) return;
+
+    items.add('nestedRepliesVote', m(VoteRail, { post: firstPost, adapter: votes }), 110);
+  });
+
   function isLikedByMe(post) {
     if (!app.session.user || typeof post.likes !== 'function') return false;
 
