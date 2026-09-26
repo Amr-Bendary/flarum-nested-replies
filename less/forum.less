@@ -1146,7 +1146,10 @@ a.NestedRepliesReplyTag {
     flex-direction: column;
     gap: 2px;
     padding: 4px 6px;
+    // The row has no vertical padding of its own, so inset the rail equally on
+    // both sides (flow-root makes the card grow to include the bottom margin).
     margin-top: 12px;
+    margin-bottom: 12px;
   }
 
   @media @phone {
