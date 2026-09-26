@@ -10,7 +10,9 @@ import PostControls from 'flarum/forum/utils/PostControls';
 import Composer from 'flarum/forum/components/Composer';
 import PostStream from 'flarum/forum/components/PostStream';
 import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
+import DiscussionListState from 'flarum/forum/states/DiscussionListState';
 import Stream from 'flarum/common/utils/Stream';
+import { withFirstPostInclude } from './utils/listParams';
 import { readSettings } from '../common/settings';
 import { createVoteAdapter } from '../common/voteAdapter';
 import { getDepth, isHidden, isOriginalPost, getReplyTarget, getParentId, isDerivedParent, planSiblingFolding } from './utils/threadDepths';
@@ -31,6 +33,13 @@ app.initializers.add('mtareq-nested-replies', () => {
   if (!settings.enabled) return;
 
   const votes = createVoteAdapter(app);
+
+  // The list rail needs the discussion's original post (and its votes/userVote).
+  // Requested client-side so it works on both Flarum 1.8 and 2.0.
+  override(DiscussionListState.prototype, 'requestParams', function (original) {
+    return withFirstPostInclude(original());
+  });
+
   const collapsed = new Set();
   const expandedGroups = new Set();
   const mounted = new Set();
