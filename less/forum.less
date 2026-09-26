@@ -1133,6 +1133,14 @@ a.NestedRepliesReplyTag {
 .NestedRepliesShowVotes {
   @nested-vote-column: 34px;
 
+  // Floats do not contribute to their container's height unless it establishes a
+  // block formatting context. Without this, a rail taller than the row content
+  // spills out below the card. `flow-root` contains the float and lets the card
+  // grow to fit it (no clipping, so dropdowns still escape).
+  .DiscussionListItem-content {
+    display: flow-root;
+  }
+
   .DiscussionListItem-content > .NestedRepliesVoteRail {
     float: left;
     flex-direction: column;
