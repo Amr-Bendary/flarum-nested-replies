@@ -202,6 +202,29 @@ app.initializers.add('mtareq-nested-replies', () => {
     });
   }
 
+  // Route the discussion's own destructive actions through the custom modal.
+  // This covers both the list rows and the discussion's menu on the details
+  // page (native confirm() is suppressed around core's original action).
+  if (DiscussionControls) {
+    override(DiscussionControls, 'hideAction', function (original) {
+      app.modal.show(DeleteConfirmModal, {
+        title: app.translator.trans('mtareq-nested-replies.forum.delete_discussion_title'),
+        message: app.translator.trans('core.forum.discussion_controls.hide_confirmation'),
+        confirmLabel: app.translator.trans('core.forum.discussion_controls.delete_button'),
+        onconfirm: () => runWithoutNativeConfirm(() => original()),
+      });
+    });
+
+    override(DiscussionControls, 'deleteAction', function (original) {
+      app.modal.show(DeleteConfirmModal, {
+        title: app.translator.trans('mtareq-nested-replies.forum.delete_discussion_forever_title'),
+        message: app.translator.trans('core.forum.discussion_controls.delete_confirmation'),
+        confirmLabel: app.translator.trans('core.forum.discussion_controls.delete_forever_button'),
+        onconfirm: () => runWithoutNativeConfirm(() => original()),
+      });
+    });
+  }
+
   // Keep the @ autocomplete to users only. Flarum's post mentionable offers the
   // discussion's posts as `@"name"#pN`, which is confusing; stop it suggesting
   // anything while leaving programmatic post mentions (quoting) intact.

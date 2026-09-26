@@ -48,3 +48,5 @@ mtareq-nested-replies:
     reply_form_discard_confirm: Discard and continue
     delete_post_title: Delete post
     delete_post_forever_title: Delete forever
+    delete_discussion_title: Delete discussion
+    delete_discussion_forever_title: Delete discussion forever

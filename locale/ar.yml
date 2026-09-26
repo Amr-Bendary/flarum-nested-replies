@@ -47,3 +47,5 @@ mtareq-nested-replies:
     reply_form_discard_confirm: تجاهل والمتابعة
     delete_post_title: حذف المشاركة
     delete_post_forever_title: حذف نهائي
+    delete_discussion_title: حذف الموضوع
+    delete_discussion_forever_title: حذف الموضوع نهائيًا
