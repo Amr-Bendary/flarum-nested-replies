@@ -50,3 +50,4 @@ mtareq-nested-replies:
     delete_post_forever_title: Delete forever
     delete_discussion_title: Delete discussion
     delete_discussion_forever_title: Delete discussion forever
+    hide_discussion_confirmation: Hide this discussion?

@@ -32,11 +32,16 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   if (!settings.enabled) return;
 
+  // Scope the list-row vote gutter / negative margin / rail styles to this
+  // class so the 34px column disappears when votes are turned off.
+  document.documentElement.classList.toggle('NestedRepliesShowVotes', settings.showVotes);
+
   const votes = createVoteAdapter(app);
 
   // The list rail needs the discussion's original post (and its votes/userVote).
   // Requested client-side so it works on both Flarum 1.8 and 2.0.
   override(DiscussionListState.prototype, 'requestParams', function (original) {
+    if (!settings.showVotes) return original();
     return withFirstPostInclude(original());
   });
 
@@ -209,9 +214,11 @@ app.initializers.add('mtareq-nested-replies', () => {
     override(DiscussionControls, 'hideAction', function (original) {
       app.modal.show(DeleteConfirmModal, {
         title: app.translator.trans('mtareq-nested-replies.forum.delete_discussion_title'),
-        message: app.translator.trans('core.forum.discussion_controls.hide_confirmation'),
+        message: app.translator.trans('mtareq-nested-replies.forum.hide_discussion_confirmation'),
         confirmLabel: app.translator.trans('core.forum.discussion_controls.delete_button'),
-        onconfirm: () => runWithoutNativeConfirm(() => original()),
+        // Core's discussion hide() performs no native confirm(), so just call
+        // the original action.
+        onconfirm: () => original(),
       });
     });
 

@@ -49,3 +49,4 @@ mtareq-nested-replies:
     delete_post_forever_title: حذف نهائي
     delete_discussion_title: حذف الموضوع
     delete_discussion_forever_title: حذف الموضوع نهائيًا
+    hide_discussion_confirmation: إخفاء هذا الموضوع؟

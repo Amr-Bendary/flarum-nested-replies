@@ -1121,49 +1121,54 @@ a.NestedRepliesReplyTag {
 // ---------------------------------------------------------------------------
 // Discussion list — vote column (leading edge, top-aligned)
 // ---------------------------------------------------------------------------
+// NOTE: gutter math matches Flarum 1.x's floated `.DiscussionListItem-content`
+// and will need revisiting for 2.x's flex layout.
 // Core reserves the leading gutter on `.DiscussionListItem-content` for the
 // floated avatar. Widening that padding by one column moves the avatar, badges,
 // main and count along with it, so only the wider padding and the control's
 // negative margin need stating. Physical properties on purpose: Flarum compiles
 // a separate RTL stylesheet by flipping `left` to `right`, matching core's own
-// physical rules here.
-@nested-vote-column: 34px;
-
-.DiscussionListItem-content > .NestedRepliesVoteRail {
-  float: left;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px;
-  margin-top: 12px;
-}
-
-@media @phone {
-  .DiscussionListItem-content {
-    padding-left: 15px + 45px + @nested-vote-column;
-  }
+// physical rules here. All rules below are gated on `.NestedRepliesShowVotes`
+// so the wider gutter disappears when votes are turned off.
+.NestedRepliesShowVotes {
+  @nested-vote-column: 34px;
 
   .DiscussionListItem-content > .NestedRepliesVoteRail {
-    margin-left: -(45px + @nested-vote-column);
-  }
-}
-
-@media @tablet-up {
-  .DiscussionListItem-content {
-    padding-left: 52px + @nested-vote-column;
+    float: left;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 6px;
+    margin-top: 12px;
   }
 
-  .DiscussionListItem-content > .NestedRepliesVoteRail {
-    margin-left: -(52px + @nested-vote-column);
+  @media @phone {
+    .DiscussionListItem-content {
+      padding-left: 15px + 45px + @nested-vote-column;
+    }
+
+    .DiscussionListItem-content > .NestedRepliesVoteRail {
+      margin-left: -(45px + @nested-vote-column);
+    }
   }
 
-  // The list also renders in the pane beside an open discussion, where core
-  // scopes a wider leading gutter (52px + the 15px row bleed).
-  .DiscussionPage-list .DiscussionListItem-content {
-    padding-left: 52px + 15px + @nested-vote-column;
-  }
+  @media @tablet-up {
+    .DiscussionListItem-content {
+      padding-left: 52px + @nested-vote-column;
+    }
 
-  .DiscussionPage-list .DiscussionListItem-content > .NestedRepliesVoteRail {
-    margin-left: -(52px + @nested-vote-column);
+    .DiscussionListItem-content > .NestedRepliesVoteRail {
+      margin-left: -(52px + @nested-vote-column);
+    }
+
+    // The list also renders in the pane beside an open discussion, where core
+    // scopes a wider leading gutter (52px + the 15px row bleed).
+    .DiscussionPage-list .DiscussionListItem-content {
+      padding-left: 52px + 15px + @nested-vote-column;
+    }
+
+    .DiscussionPage-list .DiscussionListItem-content > .NestedRepliesVoteRail {
+      margin-left: -(52px + @nested-vote-column);
+    }
   }
 }
 
