@@ -1118,4 +1118,53 @@ a.NestedRepliesReplyTag {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Discussion list — vote column (leading edge, top-aligned)
+// ---------------------------------------------------------------------------
+// Core reserves the leading gutter on `.DiscussionListItem-content` for the
+// floated avatar. Widening that padding by one column moves the avatar, badges,
+// main and count along with it, so only the wider padding and the control's
+// negative margin need stating. Physical properties on purpose: Flarum compiles
+// a separate RTL stylesheet by flipping `left` to `right`, matching core's own
+// physical rules here.
+@nested-vote-column: 34px;
+
+.DiscussionListItem-content > .NestedRepliesVoteRail {
+  float: left;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  margin-top: 12px;
+}
+
+@media @phone {
+  .DiscussionListItem-content {
+    padding-left: 15px + 45px + @nested-vote-column;
+  }
+
+  .DiscussionListItem-content > .NestedRepliesVoteRail {
+    margin-left: -(45px + @nested-vote-column);
+  }
+}
+
+@media @tablet-up {
+  .DiscussionListItem-content {
+    padding-left: 52px + @nested-vote-column;
+  }
+
+  .DiscussionListItem-content > .NestedRepliesVoteRail {
+    margin-left: -(52px + @nested-vote-column);
+  }
+
+  // The list also renders in the pane beside an open discussion, where core
+  // scopes a wider leading gutter (52px + the 15px row bleed).
+  .DiscussionPage-list .DiscussionListItem-content {
+    padding-left: 52px + 15px + @nested-vote-column;
+  }
+
+  .DiscussionPage-list .DiscussionListItem-content > .NestedRepliesVoteRail {
+    margin-left: -(52px + @nested-vote-column);
+  }
+}
+
 
