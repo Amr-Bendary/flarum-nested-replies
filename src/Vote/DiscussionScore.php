@@ -17,7 +17,7 @@ class DiscussionScore
         $firstPostId = (int) $discussion->first_post_id;
 
         $sum = $firstPostId
-            ? (int) (VoteCounts::forPosts([$firstPostId], new class { public $exists = false; })[$firstPostId] ?? 0)
+            ? (int) (VoteCounts::forPosts([$firstPostId], null)[$firstPostId] ?? 0)
             : 0;
 
         // Direct attribute assignment + save, never ->update([...]): core's

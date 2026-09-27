@@ -62,9 +62,6 @@ class VotePostController extends AbstractShowController
             DiscussionScore::recompute($post->discussion);
         });
 
-        // Serialize the fresh state (vote row + score changed).
-        $post->refresh();
-
         return $post;
     }
 }

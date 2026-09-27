@@ -28,6 +28,9 @@ class SortMapProvider extends AbstractServiceProvider
             $map['replies'] = '-commentCount';
             $map['top'] = '-votes';
 
+            // Defensive: the retired `itqan-discussions` extension still leaves
+            // its `hot` sort key in the container map when the community
+            // vendor copy lingers; drop it so it cannot win over our `votes`.
             unset($map['hot']);
 
             return $map;
