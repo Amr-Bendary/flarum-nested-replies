@@ -48,8 +48,8 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   // The list dropdown is built from this map's keys. We swap core's `top`
   // (replies) for our `replies` key and add `votes`; see discussionSortMap.js.
-  extend(DiscussionListState.prototype, 'sortMap', function (map) {
-    return withCatalogSorts(map);
+  override(DiscussionListState.prototype, 'sortMap', function (original) {
+    return withCatalogSorts(original());
   });
 
   const collapsed = new Set();
