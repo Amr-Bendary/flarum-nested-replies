@@ -11,9 +11,17 @@ use Mtareq\NestedReplies\PostVote;
  * serialization must never issue one query per post. This loader memoizes
  * per-request: a first call fetches every *unknown* id in a single grouped
  * query, later calls — including the same post reached again — are served from
- * memory. Controller hooks prime the ids they are about to serialize
- * (`primeIds()` for the discussion list, `primeOwnForDiscussion()` for the
- * details page); the serializer then reads from the memo for free.
+ * memory.
+ *
+ * Priming happens in controller hooks (see extend.php):
+ *   - the discussion list (ListDiscussionsController) calls primeIds() with
+ *     the first-post ids (+ most_relevant_post_id for search results);
+ *   - the post list (ListPostsController) — used by the reply tree — calls
+ *     primeIds() with the ids it is about to serialize;
+ *   - the discussion include / details page (ShowDiscussionController) calls
+ *     primeOwnForDiscussion() with the discussion id.
+ *
+ * Once primed for that page/discussion, per-post reads are memo-only.
  *
  * Scores and own votes memoize independently (`$knownSum` vs `$knownOwn`):
  * score reads never trigger an actor-scoped query, so actor-independent
@@ -106,17 +114,6 @@ class VoteCounts
     }
 
     /**
-     * Batch-prime scores before serialization (controller hook — no actor
-     * needed: scores are actor-independent).
-     *
-     * @param  array<int>  $ids
-     */
-    public static function prime(array $ids): void
-    {
-        static::loadSums(array_values(array_unique(array_map('intval', $ids))));
-    }
-
-    /**
      * Prime an exact set of post ids: scores always, and the actor's own votes
      * when an actor is given. Marks every id known, so later per-post reads are
      * served from memory instead of one query each.
@@ -138,22 +135,23 @@ class VoteCounts
     }
 
     /**
-     * Batch-prime the actor's own votes (and the scores) for a whole discussion
-     * in two queries. Called from the details-page controller hook —
-     * memoized per discussion, so a 60-post stream costs two queries, not 120.
+     * Batch-prime scores (and the actor's own votes when registered) for every
+     * post in a whole discussion. Called from the details-page controller hook
+     * — memoized per discussion, so a 60-post stream costs two queries, not 120.
+     * Scores are primed for guests too, so a guest's details page never issues
+     * one query per post.
      */
     public static function primeOwnForDiscussion(int $discussionId, $actor): void
     {
-        if (! static::registered($actor) || $discussionId <= 0) {
-            return;
-        }
-        if (isset(static::$ownDiscussions[$discussionId])) {
+        if ($discussionId <= 0 || isset(static::$ownDiscussions[$discussionId])) {
             return;
         }
         static::$ownDiscussions[$discussionId] = true;
 
-        // Every id in the discussion becomes "known", so the common
-        // (unvoted) case never triggers a per-post query.
+        // Every id in the discussion becomes "known" — scores always, and the
+        // actor's own votes when a registered actor is present — so neither a
+        // page of posts nor a guest session issues one query per post. The ids
+        // come from a single indexed `discussion_id` lookup.
         $postIds = \Flarum\Post\Post::query()
             ->where('discussion_id', $discussionId)
             ->pluck('id')
@@ -165,7 +163,10 @@ class VoteCounts
         }
 
         static::loadSums($postIds);
-        static::loadOwn($postIds, $actor);
+
+        if (static::registered($actor)) {
+            static::loadOwn($postIds, $actor);
+        }
     }
 
     protected static function registered($actor): bool

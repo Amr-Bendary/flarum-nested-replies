@@ -64,6 +64,9 @@ $extenders = [
                 if ($discussion && $discussion->first_post_id) {
                     $ids[] = (int) $discussion->first_post_id;
                 }
+                if ($discussion && $discussion->most_relevant_post_id) {
+                    $ids[] = (int) $discussion->most_relevant_post_id;
+                }
             }
             if ($ids) {
                 VoteCounts::primeIds($ids, \Flarum\Http\RequestUtil::getActor($request));
@@ -75,6 +78,21 @@ $extenders = [
         ->prepareDataForSerialization(function ($controller, $discussion, $request) {
             if ($discussion && $discussion->id) {
                 VoteCounts::primeOwnForDiscussion((int) $discussion->id, \Flarum\Http\RequestUtil::getActor($request));
+            }
+        }),
+
+    // Posts fetched directly (the reply tree uses /api/posts) are serialized
+    // outside the discussion include; prime the page in one go.
+    (new Extend\ApiController(\Flarum\Api\Controller\ListPostsController::class))
+        ->prepareDataForSerialization(function ($controller, $data, $request) {
+            $ids = [];
+            foreach ($data as $post) {
+                if ($post) {
+                    $ids[] = (int) $post->id;
+                }
+            }
+            if ($ids) {
+                VoteCounts::primeIds($ids, \Flarum\Http\RequestUtil::getActor($request));
             }
         }),
 
