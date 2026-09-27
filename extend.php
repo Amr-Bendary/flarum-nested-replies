@@ -149,7 +149,6 @@ if (class_exists(\Flarum\Api\Resource\PostResource::class)) {
             return [
                 'votes' => VoteCounts::forPosts([(int) $post->id], $actor)[(int) $post->id] ?? 0,
                 'userVote' => VoteCounts::userVotes([(int) $post->id], $actor)[(int) $post->id] ?? null,
-                'canVote' => (bool) $actor->can('vote', $post),
             ];
         });
 
