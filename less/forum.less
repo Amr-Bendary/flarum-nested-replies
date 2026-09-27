@@ -1086,7 +1086,8 @@ a.NestedRepliesReplyTag {
   }
 
   // Core renders the close control as .Modal-close, not .Modal-header .close.
-  // Physical `right` on purpose: Flarum's RTL pass flips it, matching core.
+  // Physical `right` on purpose: the RTL stylesheet (rtlcss) flips it, and
+  // core's own rule here is physical too.
   .Modal-close {
     top: var(--sp-12, 12px);
     right: var(--sp-12, 12px);
@@ -1100,7 +1101,7 @@ a.NestedRepliesReplyTag {
 
   .Modal-body {
     padding: 0 var(--sp-24, 24px) var(--sp-20, 20px);
-    background: transparent !important;
+    background: transparent;
   }
 
   .DeleteConfirmModal-bodyText {
@@ -1117,9 +1118,8 @@ a.NestedRepliesReplyTag {
     gap: var(--sp-8, 8px);
     padding: var(--sp-16, 16px) var(--sp-24, 24px);
     margin: 0;
-    background: var(--surface-sunken, var(--body-bg-shaded)) !important;
-    border: none !important;
-    border-top: 1px solid var(--hairline, var(--control-bg)) !important;
+    background: var(--surface-sunken, var(--body-bg-shaded));
+    border-top: 1px solid var(--hairline, var(--control-bg));
 
     .Button {
       min-height: var(--ctl-h-lg, 32px);
@@ -1132,6 +1132,16 @@ a.NestedRepliesReplyTag {
       justify-content: center;
       cursor: pointer;
     }
+  }
+}
+
+// Core turns the modal into a full-viewport sheet on phone (radius 0, no
+// border/shadow). Our card rules outrank core's phone rules, so restore it.
+@media @phone {
+  .DeleteConfirmModal .Modal-content {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
