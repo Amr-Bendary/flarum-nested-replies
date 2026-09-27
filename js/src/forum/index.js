@@ -6,6 +6,7 @@ import Button from 'flarum/common/components/Button';
 import Post from 'flarum/forum/components/Post';
 import CommentPost from 'flarum/forum/components/CommentPost';
 import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
+import PostControls from 'flarum/forum/utils/PostControls';
 import Composer from 'flarum/forum/components/Composer';
 import PostStream from 'flarum/forum/components/PostStream';
 import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
@@ -17,6 +18,7 @@ import VoteRail from './components/VoteRail';
 import CollapseToggle from './components/CollapseToggle';
 import MoreReplies from './components/MoreReplies';
 import NestedRepliesInlineReply from './components/NestedRepliesInlineReply';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 
 app.initializers.add('mtareq-nested-replies', () => {
   const settings = readSettings(app);
@@ -103,6 +105,92 @@ app.initializers.add('mtareq-nested-replies', () => {
       openInlineReply(op);
       return undefined;
     };
+  }
+
+  function removePostFromTree(postId) {
+    const id = String(postId);
+    if (allPosts && Array.isArray(allPosts)) {
+      allPosts = allPosts.filter((post) => String(post.id()) !== id);
+    }
+    collapsed.delete(id);
+    expandedGroups.delete(id);
+    forceRedraw();
+  }
+
+  // Flarum's native post actions open `confirm()`. Our DeleteConfirmModal is the
+  // confirmation, so run the original core action with the native prompt
+  // suppressed instead of copying its body (which would silently drift from core
+  // in future releases).
+  function runWithoutNativeConfirm(run) {
+    const nativeConfirm = window.confirm;
+    window.confirm = () => true;
+
+    try {
+      return run();
+    } finally {
+      window.confirm = nativeConfirm;
+    }
+  }
+
+  // Replace the native confirm() of the hide/delete post actions with the custom
+  // DeleteConfirmModal.
+  if (PostControls) {
+    override(PostControls, 'hideAction', function (original) {
+      const post = this;
+
+      app.modal.show(DeleteConfirmModal, {
+        post,
+        title: app.translator.trans('mtareq-nested-replies.forum.delete_post_title'),
+        message: app.translator.trans('core.forum.post_controls.hide_confirmation'),
+        confirmLabel: app.translator.trans('core.forum.post_controls.delete_button'),
+        cancelLabel: app.translator.trans('mtareq-nested-replies.forum.reply_form_cancel'),
+        onconfirm: () => {
+          // Core keeps the post in the stream as a hidden placeholder and marks
+          // it hidden optimistically; it must not be removed from the tree or
+          // its replies would be re-rooted at the top level.
+          Promise.resolve(runWithoutNativeConfirm(() => original())).then(() => forceRedraw(), () => forceRedraw());
+        },
+      });
+    });
+
+    override(PostControls, 'deleteAction', function (original, context) {
+      const post = this;
+      const postId = String(post.id());
+
+      app.modal.show(DeleteConfirmModal, {
+        post,
+        title: app.translator.trans('mtareq-nested-replies.forum.delete_post_forever_title'),
+        message: app.translator.trans('core.forum.post_controls.delete_confirmation'),
+        confirmLabel: app.translator.trans('core.forum.post_controls.delete_forever_button'),
+        cancelLabel: app.translator.trans('mtareq-nested-replies.forum.reply_form_cancel'),
+        onconfirm: () => {
+          // Core deletes the post and updates the discussion/store; drop it from
+          // our cached tree as well so it vanishes without a page reload.
+          Promise.resolve(runWithoutNativeConfirm(() => original(context))).then(
+            () => removePostFromTree(postId),
+            () => {}
+          );
+        },
+      });
+    });
+  }
+
+  // Route core's "Edit" post action to the in-card form. Overriding the action
+  // (rather than intercepting app.composer.load) avoids core's editAction
+  // showing an empty native composer behind the inline form, and avoids hide()
+  // discarding another composer's draft without the usual confirmation.
+  if (PostControls && typeof PostControls.editAction === 'function') {
+    override(PostControls, 'editAction', function (original) {
+      const post = this;
+      const canEdit = app.session.user && post && typeof post.canEdit === 'function' && post.canEdit();
+
+      if (canEdit && (!post.contentType || post.contentType() === 'comment')) {
+        editPost(post);
+        return Promise.resolve();
+      }
+
+      return original.call(this);
+    });
   }
 
   // Keep the @ autocomplete to users only. Flarum's post mentionable offers the
@@ -223,19 +311,6 @@ app.initializers.add('mtareq-nested-replies', () => {
 
   if (app.composer && typeof app.composer.load === 'function') {
     override(app.composer, 'load', function (original, componentClass, attrs) {
-      // Intercept the native EditPostComposer and redirect to inline edit.
-      if (attrs && attrs.post && componentClass && componentClass.prototype) {
-        const name = componentClass.name || componentClass.displayName || '';
-        if (name === 'EditPostComposer' || (componentClass.prototype && typeof componentClass.prototype.onsubmit === 'function' && attrs.post)) {
-          const post = attrs.post;
-          if (app.session.user && typeof post.canEdit === 'function' && post.canEdit()) {
-            editPost(post);
-            // Return a no-op result — the native composer stays hidden.
-            return { then: (fn) => fn && fn() };
-          }
-        }
-      }
-
       const result = original.call(this, componentClass, attrs);
 
       const apply = () => {
@@ -614,7 +689,12 @@ app.initializers.add('mtareq-nested-replies', () => {
       const grouped = [];
       if (opItem) grouped.push(m('div.NestedRepliesThreadCard', { key: 'nestedRepliesThreadCard' }, opItem));
 
-      grouped.push(m('div.NestedRepliesReplyCard', { key: 'nestedRepliesReplyCard' }, [replySortVNode(), ...replyItems]));
+      // Skip the reply card entirely when there are no replies: the sort header
+      // ("Sort by:") must not render on a discussion with no replies. Mirrors
+      // the fallback path below.
+      if (replyItems.length) {
+        grouped.push(m('div.NestedRepliesReplyCard', { key: 'nestedRepliesReplyCard' }, [replySortVNode(), ...replyItems]));
+      }
 
       return m('div.PostStream', vnode.attrs, grouped);
     }
@@ -670,7 +750,7 @@ app.initializers.add('mtareq-nested-replies', () => {
   }
 
   function isInlineComposer() {
-    return Boolean(inlineReply && inlineReply.mode === 'composer' && app.composer && app.composer.isVisible());
+    return Boolean((inlineReply && inlineReply.mode === 'composer' && app.composer && app.composer.isVisible()) || editingPostId !== null);
   }
 
   // While the reply form is inline, hide the fixed composer shell and disable
@@ -790,7 +870,17 @@ app.initializers.add('mtareq-nested-replies', () => {
     const id = String(post.id());
 
     if (inlineReply && inlineReply.postId !== id && String(inlineDraft() || '').trim()) {
-      if (!confirm(app.translator.trans('mtareq-nested-replies.forum.reply_form_discard'))) return;
+      app.modal.show(DeleteConfirmModal, {
+        title: app.translator.trans('mtareq-nested-replies.forum.reply_form_discard_title'),
+        message: app.translator.trans('mtareq-nested-replies.forum.reply_form_discard'),
+        confirmLabel: app.translator.trans('mtareq-nested-replies.forum.reply_form_discard_confirm'),
+        cancelLabel: app.translator.trans('mtareq-nested-replies.forum.reply_form_cancel'),
+        onconfirm: () => {
+          inlineDraft('');
+          openInlineReply(post);
+        },
+      });
+      return;
     }
 
     const discussion = post.discussion();
@@ -843,8 +933,15 @@ app.initializers.add('mtareq-nested-replies', () => {
     // Scroll the reply form into view after it renders.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const element = document.querySelector(`.PostStream-item[data-id="${id}"]`);
-        if (element && element.scrollIntoView) element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const targetEl =
+          document.querySelector(`.PostStream-item[data-id="${id}"] .NestedRepliesInlineReply`) ||
+          document.querySelector(`.PostStream-item[data-id="${id}"] .item-nestedRepliesInlineReply`) ||
+          document.querySelector(`.PostStream-item[data-id="${id}"] .Post-footer`) ||
+          document.querySelector(`.PostStream-item[data-id="${id}"]`);
+
+        if (targetEl && targetEl.scrollIntoView) {
+          targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
       });
     });
   }
@@ -852,7 +949,8 @@ app.initializers.add('mtareq-nested-replies', () => {
   function editPost(post) {
     if (!post) return;
 
-    // Close any open reply form first.
+    // Close any open reply form first. closeInlineReply() uses composer.close(),
+    // so an existing draft is confirmed before it is discarded.
     if (inlineReply) closeInlineReply();
 
     const content = typeof post.content === 'function' ? post.content() : '';
@@ -862,8 +960,17 @@ app.initializers.add('mtareq-nested-replies', () => {
 
     // Scroll the post into view so the edit form is visible.
     requestAnimationFrame(() => {
-      const element = document.querySelector(`.PostStream-item[data-id="${editingPostId}"]`);
-      if (element && element.scrollIntoView) element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        const targetEl =
+          document.querySelector(`.PostStream-item[data-id="${editingPostId}"] .NestedRepliesInlineEdit`) ||
+          document.querySelector(`.PostStream-item[data-id="${editingPostId}"] .item-nestedRepliesInlineEdit`) ||
+          document.querySelector(`.PostStream-item[data-id="${editingPostId}"] .Post-footer`) ||
+          document.querySelector(`.PostStream-item[data-id="${editingPostId}"]`);
+
+        if (targetEl && targetEl.scrollIntoView) {
+          targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      });
     });
   }
 
