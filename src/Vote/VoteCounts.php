@@ -11,9 +11,9 @@ use Mtareq\NestedReplies\PostVote;
  * serialization must never issue one query per post. This loader memoizes
  * per-request: a first call fetches every *unknown* id in a single grouped
  * query, later calls — including the same post reached again — are served from
- * memory. `prime()` lets a controller batch the scores it is about to
- * serialize; `primeOwnForDiscussion()` batches the actor's own votes for a
- * whole discussion stream.
+ * memory. Controller hooks prime the ids they are about to serialize
+ * (`primeIds()` for the discussion list, `primeOwnForDiscussion()` for the
+ * details page); the serializer then reads from the memo for free.
  *
  * Scores and own votes memoize independently (`$knownSum` vs `$knownOwn`):
  * score reads never trigger an actor-scoped query, so actor-independent
@@ -117,9 +117,30 @@ class VoteCounts
     }
 
     /**
-     * Batch-prime the actor's own votes for a whole discussion in one query.
-     * Called from PostSerializer's attribute closure — memoized per discussion,
-     * so a 60-post stream costs one own-vote query, not sixty.
+     * Prime an exact set of post ids: scores always, and the actor's own votes
+     * when an actor is given. Marks every id known, so later per-post reads are
+     * served from memory instead of one query each.
+     *
+     * @param  array<int>  $ids
+     */
+    public static function primeIds(array $ids, $actor = null): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (! $ids) {
+            return;
+        }
+
+        static::loadSums($ids);
+
+        if (static::registered($actor)) {
+            static::loadOwn($ids, $actor);
+        }
+    }
+
+    /**
+     * Batch-prime the actor's own votes (and the scores) for a whole discussion
+     * in two queries. Called from the details-page controller hook —
+     * memoized per discussion, so a 60-post stream costs two queries, not 120.
      */
     public static function primeOwnForDiscussion(int $discussionId, $actor): void
     {
@@ -131,19 +152,20 @@ class VoteCounts
         }
         static::$ownDiscussions[$discussionId] = true;
 
-        $rows = PostVote::query()
-            ->where('user_id', $actor->id)
-            ->whereIn('post_id', function ($query) use ($discussionId) {
-                $query->select('id')->from('posts')->where('discussion_id', $discussionId);
-            })
-            ->get(['post_id', 'value']);
+        // Every id in the discussion becomes "known", so the common
+        // (unvoted) case never triggers a per-post query.
+        $postIds = \Flarum\Post\Post::query()
+            ->where('discussion_id', $discussionId)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
-        foreach ($rows as $row) {
-            $id = (int) $row->post_id;
-            static::$knownOwn[$id] = true;
-            static::$userVotes[$id] = $row->value >= 0 ? 'up' : 'down';
+        if (! $postIds) {
+            return;
         }
-        static::$forUser = (int) $actor->id;
+
+        static::loadSums($postIds);
+        static::loadOwn($postIds, $actor);
     }
 
     protected static function registered($actor): bool
@@ -194,6 +216,7 @@ class VoteCounts
         if (static::$forUser !== null && static::$forUser !== (int) $actor->id) {
             static::$userVotes = [];
             static::$knownOwn = [];
+            static::$ownDiscussions = [];
         }
         static::$forUser = (int) $actor->id;
 

@@ -58,7 +58,7 @@ $extenders = [
     // ($controller, $data, $request, $document) on Flarum 1.x.)
     (new Extend\ApiController(ListDiscussionsController::class))
         ->addSortField('votes')
-        ->prepareDataForSerialization(function ($controller, $data) {
+        ->prepareDataForSerialization(function ($controller, $data, $request) {
             $ids = [];
             foreach ($data as $discussion) {
                 if ($discussion && $discussion->first_post_id) {
@@ -66,7 +66,15 @@ $extenders = [
                 }
             }
             if ($ids) {
-                VoteCounts::prime($ids);
+                VoteCounts::primeIds($ids, \Flarum\Http\RequestUtil::getActor($request));
+            }
+        }),
+
+    // The details page serializes a whole post stream; prime it once.
+    (new Extend\ApiController(\Flarum\Api\Controller\ShowDiscussionController::class))
+        ->prepareDataForSerialization(function ($controller, $discussion, $request) {
+            if ($discussion && $discussion->id) {
+                VoteCounts::primeOwnForDiscussion((int) $discussion->id, \Flarum\Http\RequestUtil::getActor($request));
             }
         }),
 
@@ -137,10 +145,6 @@ if (class_exists(\Flarum\Api\Resource\PostResource::class)) {
     $extenders[] = (new Extend\ApiSerializer(BasicPostSerializer::class))
         ->attributes(function ($serializer, $post) {
             $actor = $serializer->getActor();
-
-            // One own-vote query per discussion per request (memoized), then
-            // everything below is served from the loader's memo.
-            VoteCounts::primeOwnForDiscussion((int) $post->discussion_id, $actor);
 
             return [
                 'votes' => VoteCounts::forPosts([(int) $post->id], $actor)[(int) $post->id] ?? 0,
