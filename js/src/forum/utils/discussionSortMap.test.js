@@ -28,6 +28,12 @@ describe('withCatalogSorts', () => {
     expect(map).not.toHaveProperty('hot');
   });
 
+  it('drops hot even when present', () => {
+    const map = withCatalogSorts({ ...core(), hot: '-hotness' });
+    expect(map).not.toHaveProperty('hot');
+    expect(Object.keys(map)).toEqual(['latest', 'votes', 'newest', 'oldest', 'replies']);
+  });
+
   it('keeps core values for the untouched sorts', () => {
     const map = withCatalogSorts(core());
     expect(map.latest).toBe('-lastPostedAt');
@@ -45,6 +51,7 @@ describe('withCatalogSorts', () => {
       'oldest',
       'replies',
     ]);
+    expect(map.relevance).toBe('');
   });
 
   it('does not mutate its input', () => {
