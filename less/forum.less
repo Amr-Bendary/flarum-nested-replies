@@ -1086,11 +1086,14 @@ a.NestedRepliesReplyTag {
   }
 
   // Core renders the close control as .Modal-close, not .Modal-header .close.
-  // Physical `right` on purpose: the RTL stylesheet (rtlcss) flips it, and
-  // core's own rule here is physical too.
+  // Logical insets so the control sits on the *end* side in RTL without
+  // depending on a physical-property flip pass. `inline-start: auto` cancels
+  // core's own physical `right` in RTL (where inline-start is right), which
+  // would otherwise stretch the absolutely-positioned button.
   .Modal-close {
-    top: var(--sp-12, 12px);
-    right: var(--sp-12, 12px);
+    inset-block-start: var(--sp-12, 12px);
+    inset-inline-end: var(--sp-12, 12px);
+    inset-inline-start: auto;
     opacity: 0.6;
     transition: opacity 0.15s ease;
 
@@ -1175,8 +1178,9 @@ a.NestedRepliesReplyTag {
 
   .DeleteConfirmModal .Modal-close {
     position: absolute;
-    top: var(--sp-10, 10px);
-    right: var(--sp-12, 12px);
+    inset-block-start: var(--sp-10, 10px);
+    inset-inline-end: var(--sp-12, 12px);
+    inset-inline-start: auto;
   }
 
   .DeleteConfirmModal .Modal-body {
